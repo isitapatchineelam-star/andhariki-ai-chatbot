@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f4ee" />
+    <title>Andhariki — AI for everyone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Andhariki home">
+          <span class="brand-mark">a</span>
+          <span>andhariki</span>
+        </a>
+        <span class="status-pill"><span class="status-dot"></span> ready to help</span>
+      </header>
+
+      <section class="hero" id="hero">
+        <p class="eyebrow">AI for everyone</p>
+        <h1>Bring your questions.<br /><em>Leave with clarity.</em></h1>
+        <p class="hero-copy">A thoughtful, multilingual assistant for learning, creating, planning, and the little things in between.</p>
+      </section>
+
+      <section class="chat-card" aria-label="Chat with Andhariki">
+        <div class="chat-header">
+          <div class="assistant-avatar">a</div>
+          <div>
+            <strong>Andhariki</strong>
+            <span>Ask anything · English, తెలుగు, हिन्दी &amp; more</span>
+          </div>
+          <button class="clear-button" id="clearButton" type="button" title="Start a new chat">New chat</button>
+        </div>
+
+        <div class="messages" id="messages" aria-live="polite">
+          <div class="message assistant">
+            <div class="message-avatar">a</div>
+            <div class="bubble">Hi, I’m Andhariki. What would make today a little easier?</div>
+          </div>
+        </div>
+
+        <form class="composer" id="chatForm">
+          <textarea id="messageInput" rows="1" maxlength="4000" placeholder="Type your message…" aria-label="Your message"></textarea>
+          <button class="send-button" id="sendButton" type="submit" aria-label="Send message">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5 21 12 4.5 4.5l.4 6.1L15 12l-10.1 1.4-.4 6.1Z" /></svg>
+          </button>
+        </form>
+        <p class="fine-print">Andhariki can make mistakes. Check important information.</p>
+      </section>
+
+      <footer>Made for everyone, one useful answer at a time.</footer>
+    </main>
+  </body>
+</html>
