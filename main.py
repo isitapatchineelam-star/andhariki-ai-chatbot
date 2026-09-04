@@ -9,7 +9,7 @@ import json
 from flask import Flask, jsonify, render_template, request
 
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=".")
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
@@ -118,6 +118,35 @@ def ask_gemini(history):
 @app.get("/")
 def home():
     return render_template("index.html")
+
+
+@app.post("/chat")
+def chat_page():
+    if client_is_rate_limited(request.remote_addr or "unknown"):
+        return render_template("index.html", error="Too many messages. Please wait a minute and try again."), 429
+
+    user_message = request.form.get("message", "").strip()
+    if not user_message:
+        return render_template("index.html", error="Please enter a message."), 400
+    if len(user_message) > MAX_MESSAGE_LENGTH:
+        return render_template(
+            "index.html",
+            user_message=user_message,
+            error=f"Keep messages under {MAX_MESSAGE_LENGTH} characters.",
+        ), 400
+    if not GEMINI_API_KEY:
+        return render_template(
+            "index.html",
+            user_message=user_message,
+            error="The chatbot is not configured yet. Add GEMINI_API_KEY to Secrets.",
+        ), 503
+
+    try:
+        reply = ask_gemini([{"role": "user", "parts": [{"text": user_message}]}])
+    except RuntimeError as error:
+        return render_template("index.html", user_message=user_message, error=str(error)), 502
+
+    return render_template("index.html", user_message=user_message, reply=reply)
 
 
 @app.get("/health")
