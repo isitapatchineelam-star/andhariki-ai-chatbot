@@ -1,50 +1,39 @@
 import os
-import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
+import google.generativeai as genai
 
 app = Flask(_name_)
 
-# Get API Key from Render
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
 
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-SYSTEM_PROMPT = """
-You are Andhariki - a thoughtful, multilingual assistant for everyone.
-You can speak English, Telugu (both formal and casual), Hindi, and Hinglish.
-Be helpful, friendly, and concise. Always respond in the same language the user used.
-If user speaks Telugu, reply in Telugu. If English, reply in English.
-"""
-
 @app.route('/')
-def index():
+def home():
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
         data = request.get_json()
-        user_message = data.get('message', '')
+        user_msg = data.get('message','').strip() if data else ''
+        if not user_msg:
+            return jsonify({"reply": "Emaina type cheyyi bro!"})
+        if not API_KEY:
+            return jsonify({"reply": "Server lo API Key ledu - Render Environment lo GEMINI_API_KEY pettali"})
         
-        if not user_message:
-            return jsonify({"reply": "Please type something!"})
-
-        if not GEMINI_API_KEY:
-            return jsonify({"reply": "API Key is missing on server. Please set GEMINI_API_KEY in Render."})
-
-        response = model.generate_content(SYSTEM_PROMPT + "\n\nUser: " + user_message)
-        
-        if response.text:
-            return jsonify({"reply": response.text})
-        else:
-            return jsonify({"reply": "Sorry, I couldn't generate a reply. Try again!"})
-
+        prompt = f"You are Andhariki AI, friendly Telugu+English assistant. Reply in user's language: {user_msg}"
+        res = model.generate_content(prompt)
+        return jsonify({"reply": res.text})
     except Exception as e:
-        print(f"Error: {e}")
-        # IMPORTANT: Always return JSON, not HTML
-        return jsonify({"reply": f"Sorry, server error: {str(e)[:100]}. Please try again."}), 200
+        print("Error:", e)
+        return jsonify({"reply": f"Error vachindi: {str(e)[:150]}"})
+
+@app.route('/health')
+def health():
+    return jsonify({"status":"ok"})
 
 if _name_ == '_main_':
     port = int(os.environ.get("PORT", 5000))
