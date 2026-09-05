@@ -1,33 +1,39 @@
+from flask import Flask, request, jsonify, render_template_string
 import os
-from flask import Flask, request, jsonify, render_template
-import google.generativeai as genai
 
 app = Flask(_name_)
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
-if API_KEY:
-    genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    model = None
-
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    try:
-        data = request.get_json()
-        msg = data.get('message','').strip() if data else ''
-        if not msg:
-            return jsonify({"reply":"Emaina message pettu bro"})
-        if not model:
-            return jsonify({"reply":"API Key ledu"})
-        res = model.generate_content(f"You are Andhariki AI: {msg}")
-        return jsonify({"reply": res.text})
-    except Exception as e:
-        return jsonify({"reply": f"Error: {str(e)[:150]}"})
-
-if _name_ == '_main_':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT",5000)))
+HTML_PAGE = """
+<!DOCTYPE html>
+<html>
+<head><title>Andhariki AI Chatbot</title>
+<style>
+body { font-family: Arial; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+.chat-box { background: white; width: 400px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; }
+.message { padding: 10px; margin: 10px 0; border-radius: 10px; }
+.user { background: #0084ff; color: white; text-align: right; }
+.bot { background: #e4e6eb; }
+input { width: 75%; padding: 10px; border-radius: 20px; border: 1px solid #ccc; }
+button { padding: 10px 15px; border-radius: 20px; border: none; background: #0084ff; color: white; }
+</style>
+</head>
+<body>
+<div class="chat-box">
+<h2>Andhariki AI Chatbot 🤖</h2>
+<div id="chat"></div>
+<input id="msg" placeholder="Message type chey...">
+<button onclick="send()">Send</button>
+</div>
+<script>
+async function send(){
+ let m = document.getElementById('msg').value;
+ if(!m) return;
+ document.getElementById('chat').innerHTML += <div class='message user'>${m}</div>;
+ document.getElementById('msg').value='';
+ let res = await fetch('/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:m})});
+ let data = await res.json();
+ document.getElementById('chat').innerHTML += <div class='message bot'>${data.reply}</div>;
+}
+</script>
+</body>
+</html>
