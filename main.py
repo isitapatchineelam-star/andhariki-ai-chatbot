@@ -1,72 +1,85 @@
 from flask import Flask, request, jsonify
-import os, requests
+import os
+import requests
+
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return '''
-<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Andhariki AI</title>
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+
+HTML_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Andhariki AI</title>
 <style>
-body{margin:0;font-family:Arial;background:#f8f9f4;display:flex;justify-content:center}
-.box{width:100%;max-width:420px;background:#f8f9f4;height:100vh;display:flex;flex-direction:column}
-.top{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#fff;border-bottom:1px solid #e0e0e0}
-.left{display:flex;gap:10px;align-items:center}
-.logo{width:45px;height:45px;background:#2d4a3e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:bold}
-.title{font-weight:bold;font-size:17px}.sub{font-size:12px;color:#666}
-.newchat{color:#2d4a3e;font-size:14px;text-decoration:underline;cursor:pointer}
-#chat{flex:1;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:12px}
-.a-msg{display:flex;gap:8px}
-.a-icon{width:32px;height:32px;background:#2d4a3e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
-.bubble{padding:12px 14px;border-radius:18px;max-width:78%;font-size:15px;line-height:1.4;white-space:pre-wrap}
-.a-bubble{background:#e8ece3;color:#333;border-radius:18px 18px 18px 4px}
-.u-bubble{background:#dbe8d3;color:#222;align-self:flex-end;border-radius:18px 18px 4px 18px;margin-left:auto}
-.foot{padding:12px;background:#f8f9f4}
-.inputbox{display:flex;background:#fff;border:1px solid #ddd;border-radius:25px;padding:6px;align-items:center}
-input{flex:1;border:none;outline:none;padding:8px}
-.send{width:40px;height:40px;background:#2d4a3e;border:none;border-radius:50%;color:#fff;cursor:pointer;font-size:18px}
-</style></head>
-<body><div class="box">
-<div class="top"><div class="left"><div class="logo">a</div><div><div class="title">Andhariki</div><div class="sub">Ask anything · English, తెలుగు, हिन्दी & more</div></div></div><div class="newchat" onclick="location.reload()">New chat</div></div>
-<div id="chat"><div class="a-msg"><div class="a-icon">a</div><div class="bubble a-bubble">Hi Satya! Nenu ready! Yemi adagalo adugu 😊</div></div></div>
-<div class="foot"><div class="inputbox"><input id="m" placeholder="Type your message..." onkeypress="if(event.key==='Enter')send()"><button class="send" onclick="send()">➤</button></div></div>
+body { margin:0; font-family: 'Google Sans', sans-serif; background: #131314; color: #e3; display:flex; flex-direction:column; height:100vh; }
+.header { padding: 15px 20px; display:flex; align-items:center; gap:10px; border-bottom: 1px solid #2d2e30; }
+.logo { width:32px; height:32px; background: linear-gradient(135deg, #8ab4f8, #aecbfa); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#202124; font-weight:bold; }
+.chat { flex:1; overflow-y:auto; padding:20px; max-width:800px; margin:0 auto; width:100%; box-sizing:border-box; }
+.msg { margin:15px 0; padding:12px 16px; border-radius:18px; max-width:80%; line-height:1.5; }
+.user { background:#2d2e30; margin-left:auto; border-bottom-right-radius:4px; }
+.ai { background: transparent; }
+.input-box { max-width:800px; margin:0 auto 20px; width:90%; background:#1e1f20; border-radius:25px; display:flex; padding:8px; border:1px solid #333; }
+.input-box input { flex:1; background:transparent; border:none; color:white; padding:10px 15px; outline:none; font-size:16px; }
+.input-box button { background:white; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; }
+</style>
+</head>
+<body>
+<div class="header"><div class="logo">a</div><div><b>Andhariki</b><div style="font-size:12px; color:#9aa0a6;">Ask anything - English, తెలుగు, हिन्दी & more</div></div></div>
+<div class="chat" id="chat">
+<div class="msg ai">Hi Satya! Nenu ready! Yemi adagalo adugu 😊</div>
+</div>
+<div class="input-box">
+<input id="inp" placeholder="Type your message" onkeypress="if(event.key==='Enter')send()">
+<button onclick="send()">➤</button>
 </div>
 <script>
 async function send(){
- let i=document.getElementById("m");let v=i.value.trim();if(!v)return;
- let c=document.getElementById("chat");c.innerHTML+=`<div class="bubble u-bubble">${v}</div>`;i.value="";c.scrollTop=c.scrollHeight;
- let id="a"+Date.now();c.innerHTML+=`<div class="a-msg"><div class="a-icon">a</div><div class="bubble a-bubble" id="${id}">Typing... ✍️</div></div>`;
- c.scrollTop=c.scrollHeight;
- try{
-  let r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:v})});
-  let d=await r.json();document.getElementById(id).innerText=d.reply
- }catch(e){document.getElementById(id).innerText="Error: "+e}
- c.scrollTop=c.scrollHeight;
+let i=document.getElementById('inp'); let t=i.value.trim(); if(!t)return;
+let c=document.getElementById('chat');
+c.innerHTML+=`<div class="msg user">${t}</div>`; i.value='';
+c.scrollTop=c.scrollHeight;
+let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});
+let d=await r.json();
+c.innerHTML+=`<div class="msg ai">${d.reply}</div>`;
+c.scrollTop=c.scrollHeight;
 }
-</script></body></html>
-'''
+</script>
+</body>
+</html>
+"""
 
-@app.route('/chat', methods=['POST'])
+@app.route("/")
+def home():
+    return HTML_PAGE
+
+@app.route("/chat", methods=["POST"])
 def chat():
+    user_msg = request.json.get("message", "")
+    if not GROQ_API_KEY:
+        return jsonify({"reply": "Render lo GROQ_API_KEY ledu! Environment lo pettu Satya"})
+
     try:
-        msg = request.get_json().get('message','')
-        key = os.environ.get('GROQ_API_KEY','').strip()
-        if not key:
-            return jsonify({"reply": "Render lo GROQ_API_KEY ledu! Environment lo pettu Satya"})
-
-        r = requests.post("https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "llama-3.1-8b-instant",
-                "messages": [{"role": "user", "content": f"You are Andhariki AI made by Satya. Reply in same language user uses (Telugu/English/Hindi). Be friendly. User says: {msg}"}]
-            }, timeout=30)
-
-        data = r.json()
-        if 'choices' in data:
-            return jsonify({"reply": data['choices'][0]['message']['content']})
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "system", "content": "You are Andhariki AI, friendly Telugu assistant. Reply in user's language. User name is Satya."},
+                    {"role": "user", "content": user_msg}
+                ]
+            },
+            timeout=20
+        )
+        data = res.json()
+        if "choices" in data:
+            return jsonify({"reply": data["choices"][0]["message"]["content"]})
         else:
-            return jsonify({"reply": f"Groq Error: {str(data)[:300]}"})
+            return jsonify({"reply": f"Groq Error: {data}"})
     except Exception as e:
-        return jsonify({"reply": f"Error: {str(e)[:300]}"})
+        return jsonify({"reply": f"Error: {str(e)}"})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT",10000)))
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
