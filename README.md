@@ -1,21 +1,16 @@
-# Andhariki
+# Andhariki AI Chatbot 🤖🇮🇳
 
-Public Flask AI chatbot powered by Google Gemini. The API key stays on the server and is read from the `GEMINI_API_KEY` environment variable.
+A public AI chatbot that speaks Telugu and English, powered by Google Gemini.
 
-## Run locally
+🚀 *Live Demo:* https://andhariki-ai-chatbot.onrender.com
 
+### ✨ Features
+- Speaks in Telugu and English
+- Powered by Google Gemini
+- Works on mobile and desktop
+
+### 🛠️ Run Locally
 ```bash
 pip install -r requirements.txt
 export GEMINI_API_KEY="your-key"
 python main.py
-```
-
-Then open `http://localhost:5000`.
-
-For deployment, use:
-
-```bash
-gunicorn main:app
-```
-
-Set `GEMINI_API_KEY` as a Secret in the deployment environment. Never put the key in frontend JavaScript or commit it to a file.
