@@ -37,81 +37,54 @@ HTML_PAGE = """
 <div class="side-item" onclick="showImages()"><i class="fa-regular fa-images"></i> Images</div>
 <div class="side-item" onclick="showLibrary()"><i class="fa-solid fa-book-open"></i> Library</div>
 <div class="side-item" onclick="clearAllData()"><i class="fa-solid fa-trash"></i> Clear All</div>
-<div style="padding:20px"><label style="font-size:12px;color:#888">Language</label><br>
-<select id="langSel" class="lang-select" style="width:100%;margin-top:8px" onchange="changeLang(this.value)">
-<option value="auto">Auto 🌐</option>
-<option value="te">Telugu</option>
-<option value="en">English</option>
-<option value="hi">Hindi</option>
-</select></div>
 </div>
 <div class="top">
-<div style="display:flex;gap:10px;align-items:center"><div class="menu" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div><b>Andhariki AI</b></div>
-<div style="display:flex;gap:8px;align-items:center">
-<select id="topLang" class="lang-select" onchange="changeLang(this.value)">
-<option value="auto">🌐 Auto</option>
-<option value="te">తెలుగు</option>
-<option value="en">EN</option>
-<option value="hi">हिंदी</option>
-</select>
+<div style="display:flex;gap:10px;align-items:center"><div class="menu" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div><b>Andhariki AI - All Questions</b></div>
 <div class="menu" onclick="newChat()"><i class="fa-solid fa-pen-to-square"></i></div>
-</div>
 </div>
 <div class="chat" id="chat"><div id="mainContent"></div></div>
 <div class="input-area"><div class="input-box">
 <div style="color:#8e8ea0;cursor:pointer" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-plus"></i></div>
-<input id="inp" placeholder="Ask anything..." onkeypress="if(event.key==='Enter')send()">
+<input id="inp" placeholder="Ask anything - boyfriend, studies, recycling..." onkeypress="if(event.key==='Enter')send()">
 <input type="file" id="fileInput" accept="image/*" onchange="scanImage(event)">
 <div class="mic-btn" id="micBtn" onclick="startVoice()"><i class="fa-solid fa-microphone"></i></div>
 <div class="voice-circle" onclick="send()"><i class="fa-solid fa-arrow-up"></i></div>
 </div></div>
 <script>
-let currentLang = localStorage.getItem('ai_lang')||'auto';
-document.getElementById('langSel').value=currentLang;document.getElementById('topLang').value=currentLang;
-function changeLang(v){currentLang=v;localStorage.setItem('ai_lang',v);document.getElementById('langSel').value=v;document.getElementById('topLang').value=v;}
 const mainDiv=document.getElementById('mainContent'),chatDiv=document.getElementById('chat'),inp=document.getElementById('inp'),micBtn=document.getElementById('micBtn');
 function showToast(m){let t=document.getElementById('toast');t.innerText=m;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
 function toggleMenu(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function goHome(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');renderCurrentChat();}
-
 function renderCurrentChat(){
   let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');
   mainDiv.innerHTML='';
   if(cur.length==0){
-    mainDiv.innerHTML=`<div id="homeSuggestions" style="margin:25% 0;text-align:center;color:#8e8ea0"><p style="color:#fff;font-size:16px">New chat started ✅</p><div style="margin:20px 0;text-align:left;max-width:300px;margin-left:auto;margin-right:auto"><div style="margin-bottom:12px;cursor:pointer" onclick="quick('Recycling tips cheppu')">🖊️ Recycling tips cheppu</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('Plastic recycling')">♻️ Plastic recycling</div><div style="cursor:pointer" onclick="document.getElementById('fileInput').click()">🖼️ Photo scan chey</div></div></div>`;
+    mainDiv.innerHTML=`<div id="homeSuggestions" style="margin:20% 0;text-align:center;color:#8e8ea0"><p style="color:#fff;font-size:16px">New chat started ✅</p><p style="font-size:13px">Yee question adigina answer vastadi!</p><div style="margin:20px 0;text-align:left;max-width:300px;margin-left:auto;margin-right:auto"><div style="margin-bottom:12px;cursor:pointer" onclick="quick('How to impress my boyfriend?')">❤️ How to impress boyfriend?</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('Tell me about recycling')">♻️ Recycling tips</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('How to study effectively?')">📚 Study tips</div><div style="cursor:pointer" onclick="document.getElementById('fileInput').click()">🖼️ Photo scan</div></div></div>`;
   } else {
     cur.forEach(c=>{mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${c.q}</div><div class="q-label">Andhariki AI</div><div class="msg ai">${c.a}</div>`;});
   }
   chatDiv.scrollTop=chatDiv.scrollHeight;
 }
 window.onload=renderCurrentChat;
-function newChat(){localStorage.removeItem('ai_current');mainDiv.innerHTML='';renderCurrentChat();showToast('New chat ✅');document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+function newChat(){localStorage.removeItem('ai_current');renderCurrentChat();showToast('New chat ✅');document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 function showImages(){toggleMenu();let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');let html=`<div class="q-label">IMAGES</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">`;if(imgs.length==0)html+='<p style="color:#888">No images</p>';imgs.forEach(s=>{html+=`<img src="${s}" style="width:100%;border-radius:12px">`});html+=`</div><br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back</button>`;mainDiv.innerHTML=html;}
 function showLibrary(){toggleMenu();let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');let html=`<div class="q-label">LIBRARY</div>`;if(chats.length==0)html+='<p style="color:#888">No chats</p>';chats.slice().reverse().forEach(c=>{html+=`<div style="background:#1e1e1e;padding:12px;border-radius:10px;margin:8px 0"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,100)}</span></div>`});html+=`<br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back</button>`;mainDiv.innerHTML=html;}
-function clearAllData(){if(confirm('Clear all?')){let l=currentLang;localStorage.clear();localStorage.setItem('ai_lang',l);renderCurrentChat();toggleMenu();showToast('Cleared ✅');}}
+function clearAllData(){if(confirm('Clear all?')){localStorage.clear();renderCurrentChat();toggleMenu();showToast('Cleared ✅');}}
 function quick(t){inp.value=t;send();}
-function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Use Chrome');return;}let rec=new SR();if(currentLang=='te')rec.lang='te-IN';else if(currentLang=='hi')rec.lang='hi-IN';else rec.lang='en-IN';micBtn.classList.add('active');rec.onresult=e=>{inp.value=e.results[0][0].transcript;micBtn.classList.remove('active');send();};rec.onerror=()=>micBtn.classList.remove('active');rec.onend=()=>micBtn.classList.remove('active');rec.start();}
-
+function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Use Chrome');return;}let rec=new SR();rec.lang='en-IN';micBtn.classList.add('active');rec.onresult=e=>{inp.value=e.results[0][0].transcript;micBtn.classList.remove('active');send();};rec.onerror=()=>micBtn.classList.remove('active');rec.onend=()=>micBtn.classList.remove('active');rec.start();}
 async function send(){
  let t=inp.value.trim();if(!t)return;
- // MAIN FIX: Ye message ayina suggestions clear chey
- let homeEl=document.getElementById('homeSuggestions');
- if(homeEl){homeEl.remove();}
- if(mainDiv.innerHTML.includes('New chat started') || mainDiv.innerHTML.includes('Recycling tips cheppu')){
-   mainDiv.innerHTML='';
- }
- if(mainDiv.innerHTML.includes('LIBRARY') || mainDiv.innerHTML.includes('IMAGES')){
-   mainDiv.innerHTML='';
-   localStorage.removeItem('ai_current');
- }
- mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${t}</div><div id="typing" class="msg ai">♻️ Typing...</div>`;inp.value='';chatDiv.scrollTop=chatDiv.scrollHeight;
- try{let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t, lang:currentLang})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:t,a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');chats.push({q:t,a:d.reply});localStorage.setItem('ai_chats',JSON.stringify(chats));}catch(e){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Network error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
+ let homeEl=document.getElementById('homeSuggestions');if(homeEl){homeEl.remove();}
+ if(mainDiv.innerHTML.includes('New chat started')){mainDiv.innerHTML='';}
+ if(mainDiv.innerHTML.includes('LIBRARY') || mainDiv.innerHTML.includes('IMAGES')){mainDiv.innerHTML='';localStorage.removeItem('ai_current');}
+ mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${t}</div><div id="typing" class="msg ai">Thinking...</div>`;inp.value='';chatDiv.scrollTop=chatDiv.scrollHeight;
+ try{let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:t,a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');chats.push({q:t,a:d.reply});localStorage.setItem('ai_chats',JSON.stringify(chats));}catch(e){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Network error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
 }
 async function scanImage(e){
  let file=e.target.files[0];if(!file)return;let b64=await new Promise(res=>{let img=new Image(),rd=new FileReader();rd.onload=ev=>{img.onload=()=>{let c=document.createElement('canvas'),max=600,w=img.width,h=img.height;if(w>h){if(w>max){h=h*max/w;w=max}}else{if(h>max){w=w*max/h;h=max}}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);res(c.toDataURL('image/jpeg',0.6).split(',')[1]);};img.src=ev.target.result;};rd.readAsDataURL(file);});
  let preview=`data:image/jpeg;base64,${b64}`;let homeEl=document.getElementById('homeSuggestions');if(homeEl){homeEl.remove();}if(mainDiv.innerHTML.includes('New chat started')){mainDiv.innerHTML='';}
- mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${preview}" style="max-width:200px;border-radius:12px"></div><div id="typing" class="msg ai">♻️ Scanning...</div>`;chatDiv.scrollTop=chatDiv.scrollHeight;
- try{let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64, lang:currentLang})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:'Image scan',a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');imgs.push(preview);localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));}catch(err){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
+ mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${preview}" style="max-width:200px;border-radius:12px"></div><div id="typing" class="msg ai">Scanning...</div>`;chatDiv.scrollTop=chatDiv.scrollHeight;
+ try{let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:'Image scan',a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');imgs.push(preview);localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));}catch(err){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
 }
 </script></body></html>
 """
@@ -123,29 +96,61 @@ def home(): return HTML_PAGE
 def chat_api():
     data=request.json
     msg=data.get("message","")
-    lang=data.get("lang","auto")
-    if lang=="auto":
-        if any(ord(c)>3072 for c in msg): lang="te"
-        elif any(w in msg.lower() for w in ["batao","kya","hai"]): lang="hi"
-        else: lang="en"
-    lang_instruction={"te":"Reply in Telugu mix","en":"Reply in English","hi":"Reply in Hindi mix"}.get(lang,"same language as user")
+    low=msg.lower()
+
+    # PRIORITY: Try real AI first for ANY question
     if GROQ_API_KEY:
-        for model in ["llama-3.3-70b-versatile","llama-3.1-8b-instant"]:
+        for model in ["llama-3.3-70b-versatile","llama-3.1-8b-instant","llama-3.1-70b-versatile"]:
             try:
-                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":model,"messages":[{"role":"system","content":f"You are Andhariki AI. {lang_instruction}"},{"role":"user","content":msg}],"max_tokens":800},timeout=12)
+                r=requests.post("https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},
+                json={
+                    "model":model,
+                    "messages":[
+                        {"role":"system","content":"You are Andhariki AI - a friendly, helpful assistant that can answer ANY question. You know about relationships, love, studies, career, recycling, technology, health, emotions, general knowledge. Be friendly, supportive, give practical advice. Use emojis. Keep answer clear and helpful. You are NOT limited to recycling. Answer any question user asks."},
+                        {"role":"user","content":msg}
+                    ],
+                    "max_tokens":1200,
+                    "temperature":0.8
+                },timeout=15)
                 j=r.json()
-                if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
+                if "choices" in j and j["choices"]:
+                    return jsonify({"reply":j["choices"][0]["message"]["content"]})
             except: continue
-    return jsonify({"reply":f"♻️ Recycling tips - Blue: Plastic, Green: Paper, Yellow: Glass/Metal, Red: E-waste. '{msg}' kosam helpful! 😊"})
+
+    if GEMINI_API_KEY:
+        for mn in ["gemini-1.5-flash","gemini-2.0-flash"]:
+            try:
+                url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
+                r=requests.post(url, json={"contents":[{"parts":[{"text": f"You are friendly helpful AI for ANY question. Answer: {msg}"}]}]}, timeout=15)
+                j=r.json()
+                if "candidates" in j:
+                    return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
+            except: continue
+
+    # FALLBACK that works for ANY question - NOT recycling only
+    if any(w in low for w in ["boyfriend","girlfriend","love","impress","crush","relationship","breakup","pyaar"]):
+        return jsonify({"reply":"❤️ **Relationship Advice:**\\n\\n1. **Be yourself** - real is attractive\\n2. **Listen & remember** small details\\n3. **Small thoughtful gestures** - note, fav snack\\n4. **Support his/her dreams**\\n5. **Communicate openly**\\n6. **Confidence + kindness** is best combo\\n\\nDon't change yourself for anyone. Right person loves real you! You got this! 😊💕"})
+
+    if any(w in low for w in ["study","exam","focus","concentration","padhna"]):
+        return jsonify({"reply":"📚 **Study Tips:**\\n1. Pomodoro - 25 min study, 5 min break\\n2. No phone during study\\n3. Write & revise\\n4. Sleep well\\n5. Teach someone else - best learning! You can do it! 💪"})
+
+    if any(w in low for w in ["sad","depressed","lonely","anxious","stress"]):
+        return jsonify({"reply":"🤗 I hear you babooie. It's okay to feel this.\\n\\n- Talk to someone you trust\\n- Small walk, water, deep breath\\n- Write what you feel\\n- You are not alone\\n\\nIf heavy, please talk to close friend/family. You matter! ❤️"})
+
+    if any(w in low for w in ["recycl","plastic","waste","bin"]):
+        return jsonify({"reply":"♻️ **Recycling:** 🔵 Blue=Plastic, 🟢 Green=Paper, 🟡 Yellow=Glass/Metal, 🔴 Red=E-waste. Reduce Reuse Recycle! 🌱"})
+
+    # General fallback for ANY other question
+    return jsonify({"reply":f"😊 You asked: '{msg}'\\n\\nNenu ippudu help cheyalanukuntunna! Naa main AI key issue lo undi, kani nenu try chestunna.\\n\\nGeneral tip: Edaina question ki best approach - clear ga alochinchu, chinna steps ga divide chey, okati okati chey.\\n\\nMalli adugu, nenu vere vidhamga chepta! And please check your GROQ_API_KEY in Render - adi correct ayite yee question ki perfect answer vastadi! 💪"})
 
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
         data=request.json
         img=data.get("image","")
-        lang=data.get("lang","auto")
         if not img: return jsonify({"reply":"📸 Image missing"})
-        prompt_text = f"Respectful assistant. If human: 'Idi manishi photo 🙏 gauravam'. If animal: living. If waste: bin color. Language {lang}, Telugu+English mix short."
+        prompt_text = "If human: say 'This is a person 🙏 respectful, living being, not waste'. If animal: living being protect. If waste: bin color and recycling. Short friendly."
         if GROQ_API_KEY:
             for m in ["llama-3.2-11b-vision-preview","meta-llama/llama-4-scout-17b-16e-instruct"]:
                 try:
@@ -161,7 +166,7 @@ def scan():
                     j=r.json()
                     if "candidates" in j: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
                 except: continue
-        return jsonify({"reply":"🙏 Idi living being photo - gauravam ❤️ Waste ayite Blue/Green bin! 😊"})
+        return jsonify({"reply":"🙏 Photo chusa! Living being ayite gauravam ❤️ Waste ayite Blue/Green bin! 😊"})
     except: return jsonify({"reply":"🙏 Photo chusa!"})
 
 if __name__=="__main__":
