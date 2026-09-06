@@ -31,14 +31,14 @@ body{margin:0;font-family: -apple-system, BlinkMacSystemFont, sans-serif;backgro
 .input-box input{flex:1;border:none;background:transparent;outline:none;color:#fff;font-size:16px}
 .input-box input::placeholder{color:#8e8ea0}
 .plus{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#8e8ea0;cursor:pointer}
-.voice-circle{width:38px;height:38px;background:#2f80ed;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;flex-shrink:0}
+.voice-circle{width:38px;height:38px;background:#00a884;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;flex-shrink:0}
 .mic{font-size:18px;color:#8e8ea0;cursor:pointer;padding:6px}
 #fileInput{display:none}
 </style>
 </head>
 <body>
 <div class="top">
-<div class="top-left"><div class="menu"><i class="fa-solid fa-bars"></i></div><div class="getplus"><i class="fa-solid fa-sparkles"></i> Get Plus</div></div>
+<div class="top-left"><div class="menu"><i class="fa-solid fa-bars"></i></div><div class="getplus"><i class="fa-solid fa-sparkles"></i> Andhariki AI</div></div>
 <div class="menu"><i class="fa-solid fa-rotate"></i></div>
 </div>
 
@@ -53,20 +53,17 @@ body{margin:0;font-family: -apple-system, BlinkMacSystemFont, sans-serif;backgro
 <div class="input-area">
 <div class="input-box">
 <div class="plus" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-plus"></i></div>
-<input id="inp" placeholder="Ask ChatGPT" oninput="checkInput()" onkeypress="if(event.key==='Enter')send()">
+<input id="inp" placeholder="Ask Andhariki AI ♻️" onkeypress="if(event.key==='Enter')send()">
 <input type="file" id="fileInput" accept="image/*" onchange="scanImage(event)">
 <i class="fa-solid fa-microphone mic" id="micBtn" onclick="startVoice()"></i>
-<div class="voice-circle" id="sendBtn" onclick="handleSend()"><i class="fa-solid fa-waveform-lines" id="mainIcon"></i></div>
+<div class="voice-circle" id="sendBtn" onclick="handleSend()"><i class="fa-solid fa-paper-plane" id="mainIcon"></i></div>
 </div>
 </div>
 
 <script>
 const chat=document.getElementById('chat'); const inp=document.getElementById('inp');
-function checkInput(){}
 function quick(t){ inp.value=t; send(); }
-function handleSend(){
- if(inp.value.trim()){ send(); } else { startVoice(); }
-}
+function handleSend(){ if(inp.value.trim()){ send(); } else { startVoice(); } }
 let recognition;
 function startVoice(){
  if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){ alert('Chrome lo open chey'); return; }
@@ -114,7 +111,7 @@ def chat_api():
     if GROQ_API_KEY:
         for m in ["openai/gpt-oss-20b","openai/gpt-oss-120b"]:
             try:
-                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly."},{"role":"user","content":msg}],"max_tokens":1024},timeout=25)
+                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly. Always reply in Telugu+English mix."},{"role":"user","content":msg}],"max_tokens":1024},timeout=25)
                 j=r.json()
                 if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
             except: continue
@@ -132,7 +129,7 @@ def scan():
     try:
         img=request.json.get("image","")
         url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        payload={"contents":[{"parts":[{"text":"You are recycling scanner. Analyze image: what item, recyclable?, which bin?, how to recycle? Short Telugu+English."},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]}
+        payload={"contents":[{"parts":[{"text":"You are Andhariki AI recycling scanner. Analyze image: what item, recyclable?, which bin?, how to recycle? Short Telugu+English with emojis."},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]}
         r=requests.post(url,json=payload,timeout=30)
         j=r.json()
         return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
