@@ -142,47 +142,85 @@ async function scanImage(e){
 """
 
 @app.route("/")
-def home(): return HTML_PAGE
+def home():
+    return HTML_PAGE
 
 @app.route("/chat", methods=["POST"])
 def chat_api():
     msg=request.json.get("message","")
-    # Try Groq first
     if GROQ_API_KEY:
-        for m in ["llama-3.3-70b-versatile","openai/gpt-oss-20b","llama-3.1-8b-instant"]:
+        for m in ["llama-3.3-70b-versatile","llama-3.1-8b-instant"]:
             try:
-                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly Telugu+English mix."},{"role":"user","content":msg}],"max_tokens":1024},timeout=20)
+                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly Telugu+English mix, helpful."},{"role":"user","content":msg}],"max_tokens":1024},timeout=20)
                 j=r.json()
-                if "choices" in j and len(j["choices"])>0: return jsonify({"reply":j["choices"][0]["message"]["content"]})
-            except: continue
-    # Gemini fallback
+                if "choices" in j and len(j["choices"])>0:
+                    return jsonify({"reply":j["choices"][0]["message"]["content"]})
+            except Exception as e:
+                print(f"Groq {m} error: {e}")
+                continue
+    # Gemini fallback - NEW MODELS 2026
     if GEMINI_API_KEY:
-        try:
-            url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            r=requests.post(url,json={"contents":[{"parts":[{"text":msg}]}]},timeout=20)
-            j=r.json()
-            if "candidates" in j: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
-        except: pass
-    return jsonify({"reply":"Busy, malli adugu"})
+        for model_name in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
+            try:
+                url=f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+                r=requests.post(url,json={"contents":[{"parts":[{"text":msg}]}]},timeout=20)
+                j=r.json()
+                if "candidates" in j:
+                    return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
+            except Exception as e:
+                print(f"Gemini {model_name} error: {e}")
+                continue
+    return jsonify({"reply":"Busy raa, 1 min tarvata malli adugu ♻️"})
 
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
         img=request.json.get("image","")
         if not GEMINI_API_KEY:
-            return jsonify({"reply":"❌ GEMINI key ledu Render lo"})
-        # NEW MODEL - 2026 working
-        url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-        payload={"contents":[{"parts":[{"text":"You are Andhariki AI recycling expert. Look at this image. Tell in Telugu+English mix: 1) What is this? 2) Is it recyclable? 3) Which bin color? 4) How to recycle? Keep short, friendly, with emojis. Even if not waste (like animals), explain why not recyclable."},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]}
-        r=requests.post(url,json=payload,timeout=30)
-        j=r.json()
-        print(j) # for Render logs
-        if "candidates" in j and j["candidates"]:
-            return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
-        else:
-            return jsonify({"reply":f"API Error: {str(j)[:200]} - Key invalid or quota over"})
-    except Exception as e:
-        print(f"Scan error: {e}")
-        return jsonify({"reply":f"Error: {str(e)[:150]} - Malli try chey"})
+            return jsonify({"reply":"❌ GEMINI_API_KEY ledu Render Environment lo. Add chey!"})
 
-if __name__=="__main__": app.run(host="0.0.0.0",port=int(os.environ.get("PORT",10000)))
+        # E IMAGE AINA ANSWER ISTADI - PROMPT FIX
+        prompt_text = """
+        You are Andhariki AI - a friendly recycling expert.
+        Analyze this image. Respond in Telugu + English mix with emojis.
+        Always answer, even if it's not waste.
+        Format:
+        1️⃣ Idi enti? (What is this?)
+        2️⃣ Recyclable ah? Yes/No
+        3️⃣ Edi aithe e bin? (Blue/Green/Red/Compost)
+        4️⃣ Ela recycle cheyali?
+        If it's an animal/person/food, say "Idi living thing/food raa, recycle kaadu but... " and give fun fact.
+        Keep answer short, 4-5 lines max.
+        """
+
+        for model_name in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
+            try:
+                url=f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+                payload={
+                    "contents":[{
+                        "parts":[
+                            {"text": prompt_text},
+                            {"inline_data":{"mime_type":"image/jpeg","data":img}}
+                        ]
+                    }]
+                }
+                r=requests.post(url,json=payload,timeout=30)
+                j=r.json()
+                print(f"Scan trying {model_name}: {str(j)[:300]}")
+                if "candidates" in j and j["candidates"]:
+                    ans=j["candidates"][0]["content"]["parts"][0]["text"]
+                    return jsonify({"reply":ans})
+                # If error, keep j for final error msg
+            except Exception as e:
+                print(f"Scan {model_name} failed: {e}")
+                continue
+
+        # If all failed
+        return jsonify({"reply":f"❌ API Error: {str(j)[:250]}. Key invalid ayithe aistudio.google.com lo kotha key teesuko!"})
+
+    except Exception as e:
+        print(f"Scan main error: {e}")
+        return jsonify({"reply":f"❌ Error: {str(e)[:150]} - Malli try chey"})
+
+if __name__=="__main__":
+    app.run(host="0.0.0.0",port=int(os.environ.get("PORT",10000)))
