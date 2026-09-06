@@ -45,7 +45,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background
 .q-label{font-weight:bold;color:#aaa;margin-top:14px;display:block;font-size:12px}
 .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .gallery img{width:100%;border-radius:12px}
-.card{background:#1e1e1e;padding:14px;border-radius:12px;margin:8px 0}
+.card{background:#1e1e1e;padding:14px;border-radius:12px;margin:8px 0;position:relative}
+.del-btn{position:absolute;top:6px;right:6px;background:#ff3333;color:#fff;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer}
 </style>
 </head>
 <body>
@@ -84,11 +85,39 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background
 <script>
 function toggleMenu(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function newChat(){document.getElementById('mainContent').innerHTML='';document.getElementById('opts').style.display='flex';toggleMenu();}
-function showImages(){toggleMenu();document.getElementById('opts').style.display='none';let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');let html='<div class="q-label">IMAGES GALLERY</div><div class="gallery">';if(imgs.length==0)html+='<p style="color:#888">Inka images levu.</p>';imgs.forEach(s=>{html+=`<img src="${s}">`});html+='</div>';document.getElementById('mainContent').innerHTML=html;}
-function showLibrary(){toggleMenu();document.getElementById('opts').style.display='none';let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');let html='<div class="q-label">LIBRARY</div>';if(chats.length==0)html+='<p style="color:#888">Chat history ledu</p>';chats.slice(-20).reverse().forEach(c=>{html+=`<div class="card"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,80)}...</span></div>`});document.getElementById('mainContent').innerHTML=html;}
+function showImages(){
+ toggleMenu();document.getElementById('opts').style.display='none';
+ let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');
+ let html=`<div class="q-label">IMAGES GALLERY - ${imgs.length} photos</div>`;
+ html+=`<button onclick="clearAllImages()" style="background:#ff4444;color:#fff;border:none;padding:8px 16px;border-radius:8px;margin-bottom:12px;cursor:pointer"><i class="fa-solid fa-trash"></i> Anni Images Delete</button>`;
+ html+=`<div class="gallery">`;
+ if(imgs.length==0) html+='<p style="color:#888">Images levu raa babooie</p>';
+ imgs.forEach((s,i)=>{
+   html+=`<div style="position:relative"><img src="${s}"><button class="del-btn" onclick="deleteImage(${i})">✕</button></div>`;
+ });
+ html+='</div>';document.getElementById('mainContent').innerHTML=html;
+}
+function deleteImage(i){ let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]'); imgs.splice(i,1); localStorage.setItem('ai_images',JSON.stringify(imgs)); showImages(); }
+function clearAllImages(){ if(confirm('Anni images delete cheyala babooie?')){ localStorage.removeItem('ai_images'); showImages(); } }
+
+function showLibrary(){
+ toggleMenu();document.getElementById('opts').style.display='none';
+ let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');
+ let html=`<div class="q-label">LIBRARY - ${chats.length} chats</div>`;
+ html+=`<button onclick="clearAllChats()" style="background:#ff4444;color:#fff;border:none;padding:8px 16px;border-radius:8px;margin-bottom:12px;cursor:pointer"><i class="fa-solid fa-trash"></i> Anni Chats Delete</button>`;
+ if(chats.length==0) html+='<p style="color:#888">Chat history ledu</p>';
+ chats.slice().reverse().forEach((c,i)=>{
+   let realIndex = chats.length-1-i;
+   html+=`<div class="card"><button class="del-btn" onclick="deleteChat(${realIndex})">✕</button><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,120)}...</span></div>`;
+ });
+ document.getElementById('mainContent').innerHTML=html;
+}
+function deleteChat(i){ let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]'); chats.splice(i,1); localStorage.setItem('ai_chats',JSON.stringify(chats)); showLibrary(); }
+function clearAllChats(){ if(confirm('Anni chats delete cheyala babooie?')){ localStorage.removeItem('ai_chats'); showLibrary(); } }
+
 function showProjects(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PROJECTS</div><div class="card">♻️ <b>Recycle Bin Scanner</b></div>`;}
 function showScheduled(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">SCHEDULED</div><div class="card">⏰ Ready</div>`;}
-function showPlugins(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PLUGINS</div><div class="card">📷 Scanner ON<br>🎤 Voice ON</div>`;}
+function showPlugins(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PLUGINS</div><div class="card">📷 Scanner ON<br>🎤 Voice ON<br>🗑️ Delete ON</div>`;}
 const chat=document.getElementById('chat'); const inp=document.getElementById('inp');
 function quick(t){inp.value=t; send();}
 function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=new SR();rec.lang='te-IN';rec.onresult=(e)=>{inp.value=e.results[0][0].transcript;send();};rec.start();}
@@ -107,20 +136,30 @@ async function send(){
 }
 async function scanImage(e){
  let file=e.target.files[0]; if(!file) return;
- let reader=new FileReader();
- reader.onload=async()=>{
-  let b64=reader.result.split(',')[1];
-  document.getElementById('opts').style.display='none';
-  document.getElementById('mainContent').innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${reader.result}" style="max-width:200px;border-radius:12px"><br>♻️ Scanning...</div>`;
-  let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]'); imgs.push(reader.result); localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));
-  try{
-   let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});
-   let d=await r.json();
-   document.getElementById('mainContent').innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;
-  }catch(err){ document.getElementById('mainContent').innerHTML+=`<div class="msg ai">❌ Scan error</div>` }
-  chat.scrollTop=chat.scrollHeight;
- };
- reader.readAsDataURL(file);
+ let compressedBase64 = await new Promise((resolve)=>{
+   let imgEl=new Image(); let reader=new FileReader();
+   reader.onload=(ev)=>{
+     imgEl.onload=()=>{
+       let canvas=document.createElement('canvas'); let max=800;
+       let w=imgEl.width,h=imgEl.height;
+       if(w>h){ if(w>max){h=h*max/w; w=max} } else { if(h>max){w=w*max/h; h=max} }
+       canvas.width=w; canvas.height=h;
+       canvas.getContext('2d').drawImage(imgEl,0,0,w,h);
+       resolve(canvas.toDataURL('image/jpeg',0.7).split(',')[1]);
+     }; imgEl.src=ev.target.result;
+   }; reader.readAsDataURL(file);
+ });
+ document.getElementById('opts').style.display='none';
+ let preview=`data:image/jpeg;base64,${compressedBase64}`;
+ document.getElementById('mainContent').innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${preview}" style="max-width:200px;border-radius:12px"><br>♻️ Scanning...</div>`;
+ chat.scrollTop=chat.scrollHeight;
+ let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]'); imgs.push(preview); localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));
+ try{
+  let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:compressedBase64})});
+  let d=await r.json();
+  document.getElementById('mainContent').innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;
+ }catch(err){ document.getElementById('mainContent').innerHTML+=`<div class="msg ai">❌ Scan fail, malli try chey</div>` }
+ chat.scrollTop=chat.scrollHeight;
 }
 </script>
 </body>
@@ -154,33 +193,23 @@ def chat_api():
 def scan():
     try:
         img=request.json.get("image","")
-        prompt_text="You are Andhariki AI recycling expert. Analyze image in Telugu+English mix with emojis. Format: 1) Idi enti? 2) Recyclable ah? 3) E bin? 4) Ela recycle cheyali? If animal/person/food, say 'Idi living thing raa, recycle kaadu' with fun fact. Short 4-5 lines."
-
-        # 1. GROQ VISION - FAST, NO BUSY ERROR
+        prompt_text="You are Andhariki AI recycling expert. Analyze image in Telugu+English mix with emojis. 1) Idi enti? 2) Recyclable ah? 3) E bin? 4) Ela recycle? If animal/person, say 'Idi living thing raa, recycle kaadu' with fun fact. Short 4-5 lines."
         if GROQ_API_KEY:
             for m in ["meta-llama/llama-4-scout-17b-16e-instruct","meta-llama/llama-4-maverick-17b-128e-instruct","llama-3.2-11b-vision-preview"]:
                 try:
                     r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"user","content":[{"type":"text","text":prompt_text},{"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{img}"}}]}],"max_tokens":600},timeout=30)
                     j=r.json()
-                    print(f"Groq {m}: {str(j)[:400]}")
-                    if "choices" in j and len(j["choices"])>0:
-                        return jsonify({"reply":j["choices"][0]["message"]["content"]})
-                except Exception as e:
-                    print(f"Groq {m} fail {e}")
-                    continue
-
-        # 2. GEMINI BACKUP
+                    if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
+                except: continue
         if GEMINI_API_KEY:
             for mn in ["gemini-2.5-flash","gemini-1.5-flash","gemini-flash-latest"]:
                 try:
                     url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
                     r=requests.post(url,json={"contents":[{"parts":[{"text":prompt_text},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]},timeout=30)
                     j=r.json()
-                    if "candidates" in j and j["candidates"]:
-                        return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
+                    if "candidates" in j and j["candidates"]: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
                 except: continue
-
-        return jsonify({"reply":"♻️ Server konchem busy raa babooie, 30 sec tarvata malli try chey!"})
+        return jsonify({"reply":"♻️ Server busy, 30 sec tarvata try chey babooie!"})
     except Exception as e:
         return jsonify({"reply":f"Error {e}"})
 
