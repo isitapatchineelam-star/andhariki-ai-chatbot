@@ -25,7 +25,10 @@ HTML_PAGE = """
 .input-area{padding:10px 12px 18px;background:#000;position:sticky;bottom:0}
 .input-box{max-width:800px;margin:0 auto;background:#2f2f2f;border-radius:28px;padding:6px 12px;display:flex;align-items:center;gap:10px;min-height:50px;border:1px solid #3a3a3a}
 .input-box input{flex:1;border:none;background:transparent;outline:none;color:#fff;font-size:16px}
-.voice-circle{width:38px;height:38px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer}
+.mic-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#9e9e9e;cursor:pointer;font-size:18px}
+.mic-btn.active{color:#ff4444;animation:pulse 1s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.voice-circle{width:38px;height:38px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;flex-shrink:0}
 #fileInput{display:none}
 .card{background:#1e1e1e;padding:14px;border-radius:12px;margin:8px 0;position:relative}
 .del-btn{position:absolute;top:6px;right:6px;background:#ff3333;color:#fff;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer}
@@ -46,8 +49,9 @@ HTML_PAGE = """
 
 <div class="input-area"><div class="input-box">
 <div style="color:#8e8ea0;cursor:pointer" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-plus"></i></div>
-<input id="inp" placeholder="Ask anything..." onkeypress="if(event.key==='Enter')send()">
+<input id="inp" placeholder="Ask anything... Telugu lo kuda!" onkeypress="if(event.key==='Enter')send()">
 <input type="file" id="fileInput" accept="image/*" onchange="scanImage(event)">
+<div class="mic-btn" id="micBtn" onclick="startVoice()"><i class="fa-solid fa-microphone"></i></div>
 <div class="voice-circle" onclick="send()"><i class="fa-solid fa-arrow-up"></i></div>
 </div></div>
 
@@ -55,19 +59,19 @@ HTML_PAGE = """
 const mainDiv=document.getElementById('mainContent');
 const chatDiv=document.getElementById('chat');
 const inp=document.getElementById('inp');
+const micBtn=document.getElementById('micBtn');
 
 function toggleMenu(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
-
 function goHome(){toggleMenu();renderCurrentChat();}
 
 function renderCurrentChat(){
   let current=JSON.parse(localStorage.getItem('ai_current')||'[]');
   mainDiv.innerHTML='';
   if(current.length==0){
-    mainDiv.innerHTML=`<div style="margin:30% 0 20px;color:#8e8ea0"><div style="margin-bottom:14px;cursor:pointer" onclick="quick('Create image of recycle bin')"><i class="fa-regular fa-image"></i> Create an image</div><div style="cursor:pointer" onclick="quick('Recycling gurinchi cheppu')"><i class="fa-solid fa-pen"></i> Recycling tips</div></div><p style="color:#555;text-align:center">No chats yet - start chatting babooie!</p>`;
+    mainDiv.innerHTML=`<div style="margin:20% 0 20px;color:#8e8ea0"><div style="margin-bottom:16px;cursor:pointer" onclick="quick('Create an image of recycling')"><i class="fa-regular fa-image"></i> Create an image</div><div style="margin-bottom:16px;cursor:pointer" onclick="quick('Recycling gurinchi cheppu')"><i class="fa-solid fa-pen"></i> Recycling tips cheppu</div><div style="cursor:pointer" onclick="quick('Voice tho matladu')"><i class="fa-solid fa-microphone"></i> Voice test chey</div></div>`;
   } else {
     current.forEach(c=>{
-      mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${c.q}</div><div class="q-label">Andhariki AI</div><div class="msg ai">${c.a}</div>`;
+      mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${c.q}</div><div class="q-label">Andhariki AI</div><div class="msg ai">${c.a} <span style="cursor:pointer;margin-left:8px;color:#4a9eff" onclick="speakText(this.previousSibling.textContent)"><i class="fa-solid fa-volume-high"></i></span></div>`;
     });
   }
   chatDiv.scrollTop=chatDiv.scrollHeight;
@@ -75,7 +79,7 @@ function renderCurrentChat(){
 window.onload=renderCurrentChat;
 
 function newChat(){
-  if(confirm('New chat? Old chat Library lo save avtadi')){
+  if(confirm('New chat start cheyala?')){
     localStorage.removeItem('ai_current');
     renderCurrentChat();toggleMenu();
   }
@@ -87,7 +91,7 @@ function showImages(){
  let html=`<div class="q-label">IMAGES - ${imgs.length}</div><button onclick="clearAllImages()" style="background:red;color:#fff;border:none;padding:8px 14px;border-radius:8px;margin-bottom:10px;cursor:pointer">Anni Delete</button><div class="gallery">`;
  if(imgs.length==0) html+='<p style="color:#888">No images</p>';
  imgs.forEach((s,i)=>{html+=`<div style="position:relative"><img src="${s}"><button class="del-btn" onclick="deleteImage(${i})">✕</button></div>`});
- html+='</div><br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back to Chat</button>';mainDiv.innerHTML=html;
+ html+=`</div><br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back to Chat</button>`;mainDiv.innerHTML=html;
 }
 function deleteImage(i){let a=JSON.parse(localStorage.getItem('ai_images')||'[]');a.splice(i,1);localStorage.setItem('ai_images',JSON.stringify(a));showImages();}
 function clearAllImages(){if(confirm('Delete all images?')){localStorage.removeItem('ai_images');showImages();}}
@@ -103,24 +107,58 @@ function showLibrary(){
 }
 function deleteChat(i){let a=JSON.parse(localStorage.getItem('ai_chats')||'[]');a.splice(i,1);localStorage.setItem('ai_chats',JSON.stringify(a));showLibrary();}
 function clearAllChats(){if(confirm('Delete all chats?')){localStorage.removeItem('ai_chats');localStorage.removeItem('ai_current');renderCurrentChat();}}
-function clearAllData(){if(confirm('Motham delete cheyala?')){localStorage.clear();renderCurrentChat();toggleMenu();}}
+function clearAllData(){if(confirm('Motham delete cheyala babooie?')){localStorage.clear();renderCurrentChat();toggleMenu();}}
 
 function quick(t){inp.value=t;send();}
 
+// VOICE INPUT - FIXED
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Voice browser lo support kaadu, Chrome lo try chey');return;}
+  let rec=new SR();
+  rec.lang='te-IN'; // Telugu + English rendu vastadi
+  rec.interimResults=false;
+  micBtn.classList.add('active');
+  micBtn.innerHTML='<i class="fa-solid fa-circle"></i>';
+  rec.onresult=(e)=>{
+    inp.value=e.results[0][0].transcript;
+    micBtn.classList.remove('active');
+    micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+    send();
+  };
+  rec.onerror=()=>{
+    micBtn.classList.remove('active');
+    micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+    alert('Voice clear ga raledu, malli try chey babooie');
+  };
+  rec.onend=()=>{
+    micBtn.classList.remove('active');
+    micBtn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+  };
+  rec.start();
+}
+
+// VOICE OUTPUT - Text to Speech
+function speakText(text){
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+    let ut=new SpeechSynthesisUtterance(text);
+    ut.lang='te-IN';
+    ut.rate=0.9;
+    speechSynthesis.speak(ut);
+  }
+}
+
 async function send(){
  let t=inp.value.trim();if(!t)return;
- // If currently in Images/Library view, go home first
- let current=JSON.parse(localStorage.getItem('ai_current')||'[]');
  if(mainDiv.innerHTML.includes('LIBRARY') || mainDiv.innerHTML.includes('IMAGES')){renderCurrentChat();}
-
  mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${t}</div><div id="typing" class="msg ai">♻️ Typing...</div>`;
  inp.value='';chatDiv.scrollTop=chatDiv.scrollHeight;
  try{
   let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});
   let d=await r.json();
   let typ=document.getElementById('typing'); if(typ) typ.remove();
-  mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;
-  // SAVE
+  mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply} <span style="cursor:pointer;margin-left:8px;color:#4a9eff" onclick="speakText('${d.reply.replace(/'/g,"")}')"><i class="fa-solid fa-volume-high"></i></span></div>`;
   let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:t,a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));
   let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');chats.push({q:t,a:d.reply});localStorage.setItem('ai_chats',JSON.stringify(chats));
  }catch(e){let typ=document.getElementById('typing'); if(typ) typ.remove(); mainDiv.innerHTML+=`<div class="msg ai">Network error</div>`;}
@@ -146,9 +184,10 @@ async function scanImage(e){
   let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:compressedBase64})});
   let d=await r.json();
   let typ=document.getElementById('typing'); if(typ) typ.remove();
-  mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;
+  mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply} <span style="cursor:pointer;margin-left:8px;color:#4a9eff" onclick="speakText('${d.reply.replace(/'/g,"")}')"><i class="fa-solid fa-volume-high"></i></span></div>`;
   let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:`<img src="${preview}" style="max-width:120px"> Scan`,a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));
   let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');imgs.push(preview);localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));
+  speakText(d.reply);
  }catch(err){let typ=document.getElementById('typing'); if(typ) typ.remove(); mainDiv.innerHTML+=`<div class="msg ai">❌ ${err}</div>`;}
  chatDiv.scrollTop=chatDiv.scrollHeight;
 }
@@ -167,7 +206,7 @@ def chat_api():
             j=r.json()
             if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
         except: pass
-    return jsonify({"reply":"Hi babooie! ♻️"})
+    return jsonify({"reply":"Hi babooie! Nenu Andhariki AI ♻️ Voice kuda vachesindi!"})
 
 @app.route("/scan", methods=["POST"])
 def scan():
@@ -190,7 +229,7 @@ def scan():
                     j=r.json()
                     if "candidates" in j and j["candidates"]: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
                 except: continue
-        return jsonify({"reply":"🐧 Idi penguin raa babooie! Living thing, recycle kaadu! ❄️ Fun fact: Penguins swimming lo 15mph speed! 💙"})
+        return jsonify({"reply":"🐧 Idi penguin raa babooie! Living thing, recycle kaadu! ❄️"})
     except Exception as e:
         return jsonify({"reply":f"🐧 Penguin raa! Living thing kaadu recycle. Err {str(e)[:50]}"})
 
