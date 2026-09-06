@@ -25,9 +25,10 @@ HTML_PAGE = """
 .input-box input{flex:1;border:none;background:transparent;outline:none;color:#fff;font-size:16px}
 .mic-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#9e9e9e;cursor:pointer;font-size:18px}.mic-btn.active{color:#ff4444;animation:pulse 1s infinite}@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
 .voice-circle{width:38px;height:38px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;flex-shrink:0}
-#fileInput{display:none}.card{background:#1e1e1e;padding:14px;border-radius:12px;margin:8px 0;position:relative}.del-btn{position:absolute;top:6px;right:6px;background:#ff3333;color:#fff;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer}.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.gallery img{width:100%;border-radius:12px}
+#fileInput{display:none}.card{background:#1e1e1e;padding:14px;border-radius:12px;margin:8px 0}.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 20px;border-radius:20px;z-index:100;display:none}
 </style></head><body>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+<div class="toast" id="toast"></div>
 <div class="sidebar" id="sidebar">
 <div style="padding:0 20px 20px;border-bottom:1px solid #2a2a2a;margin-bottom:10px"><b>♻️ Andhariki AI</b></div>
 <div class="new-chat" onclick="newChat()">+ New chat</div>
@@ -47,38 +48,45 @@ HTML_PAGE = """
 </div></div>
 <script>
 const mainDiv=document.getElementById('mainContent'),chatDiv=document.getElementById('chat'),inp=document.getElementById('inp'),micBtn=document.getElementById('micBtn');
+function showToast(m){let t=document.getElementById('toast');t.innerText=m;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
 function toggleMenu(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
-function goHome(){toggleMenu();renderCurrentChat();}
+function goHome(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');renderCurrentChat();}
 function renderCurrentChat(){
   let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');
   mainDiv.innerHTML='';
   if(cur.length==0){
-    mainDiv.innerHTML=`<div style="margin:20% 0;color:#8e8ea0"><div style="margin-bottom:14px;cursor:pointer" onclick="quick('Recycling gurinchi cheppu')"><i class="fa-solid fa-pen"></i> Recycling tips cheppu</div><div style="margin-bottom:14px;cursor:pointer" onclick="quick('Plastic ela recycle cheyali?')"><i class="fa-solid fa-recycle"></i> Plastic recycling</div><div style="cursor:pointer" onclick="document.getElementById('fileInput').click()"><i class="fa-regular fa-image"></i> Photo scan chey</div></div>`;
+    mainDiv.innerHTML=`<div style="margin:30% 0;text-align:center;color:#8e8ea0"><p style="color:#fff;font-size:18px">New chat started ✅</p><div style="margin:20px 0;text-align:left;max-width:300px;margin-left:auto;margin-right:auto"><div style="margin-bottom:14px;cursor:pointer" onclick="quick('Recycling gurinchi cheppu')"><i class="fa-solid fa-pen"></i> Recycling tips cheppu</div><div style="margin-bottom:14px;cursor:pointer" onclick="quick('Plastic ela recycle cheyali?')"><i class="fa-solid fa-recycle"></i> Plastic recycling</div><div style="cursor:pointer" onclick="document.getElementById('fileInput').click()"><i class="fa-regular fa-image"></i> Photo scan chey</div></div></div>`;
   } else {
-    cur.forEach(c=>{mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${c.q}</div><div class="q-label">Andhariki AI</div><div class="msg ai">${c.a} <span style="cursor:pointer;color:#4a9eff" onclick="speakText(this.parentElement.innerText)"><i class="fa-solid fa-volume-high"></i></span></div>`;});
+    cur.forEach(c=>{mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${c.q}</div><div class="q-label">Andhariki AI</div><div class="msg ai">${c.a}</div>`;});
   }
   chatDiv.scrollTop=chatDiv.scrollHeight;
 }
 window.onload=renderCurrentChat;
-function newChat(){if(confirm('New chat start cheyala?')){localStorage.removeItem('ai_current');renderCurrentChat();toggleMenu();}}
-function showImages(){toggleMenu();let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');let html=`<div class="q-label">IMAGES - ${imgs.length}</div><button onclick="clearAllImages()" style="background:red;color:#fff;border:none;padding:8px 14px;border-radius:8px;margin-bottom:10px">Anni Delete</button><div class="gallery">`;if(imgs.length==0)html+='<p style="color:#888">No images</p>';imgs.forEach((s,i)=>{html+=`<div style="position:relative"><img src="${s}"><button class="del-btn" onclick="deleteImage(${i})">✕</button></div>`});html+=`</div><br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back to Chat</button>`;mainDiv.innerHTML=html;}
-function deleteImage(i){let a=JSON.parse(localStorage.getItem('ai_images')||'[]');a.splice(i,1);localStorage.setItem('ai_images',JSON.stringify(a));showImages();}
-function clearAllImages(){if(confirm('Delete all?')){localStorage.removeItem('ai_images');showImages();}}
-function showLibrary(){toggleMenu();let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');let html=`<div class="q-label">LIBRARY - ${chats.length}</div><button onclick="clearAllChats()" style="background:red;color:#fff;border:none;padding:8px 14px;border-radius:8px;margin-bottom:10px">Anni Delete</button>`;if(chats.length==0)html+='<p style="color:#888">No chats</p>';chats.slice().reverse().forEach(c=>{html+=`<div class="card"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,100)}</span></div>`});html+=`<br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back to Chat</button>`;mainDiv.innerHTML=html;}
-function clearAllChats(){if(confirm('Delete all chats?')){localStorage.removeItem('ai_chats');localStorage.removeItem('ai_current');renderCurrentChat();}}
-function clearAllData(){if(confirm('Motham delete cheyala?')){localStorage.clear();renderCurrentChat();toggleMenu();}}
+function newChat(){
+  // FIX - Direct clear, no confirm bug
+  localStorage.removeItem('ai_current');
+  mainDiv.innerHTML='';
+  renderCurrentChat();
+  showToast('New chat started ✅');
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+function showImages(){toggleMenu();let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');let html=`<div class="q-label">IMAGES - ${imgs.length}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">`;if(imgs.length==0)html+='<p style="color:#888">No images</p>';imgs.forEach(s=>{html+=`<img src="${s}" style="width:100%;border-radius:12px">`});html+=`</div><br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back</button>`;mainDiv.innerHTML=html;}
+function showLibrary(){toggleMenu();let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');let html=`<div class="q-label">LIBRARY - ${chats.length}</div>`;if(chats.length==0)html+='<p style="color:#888">No chats</p>';chats.slice().reverse().forEach(c=>{html+=`<div class="card"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,100)}</span></div>`});html+=`<br><button onclick="goHome()" style="background:#333;color:#fff;border:none;padding:8px 14px;border-radius:8px">← Back</button>`;mainDiv.innerHTML=html;}
+function clearAllData(){if(confirm('Motham delete cheyala?')){localStorage.clear();renderCurrentChat();toggleMenu();showToast('All cleared ✅');}}
 function quick(t){inp.value=t;send();}
 function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Chrome lo try chey');return;}let rec=new SR();rec.lang='te-IN';micBtn.classList.add('active');rec.onresult=e=>{inp.value=e.results[0][0].transcript;micBtn.classList.remove('active');send();};rec.onerror=()=>micBtn.classList.remove('active');rec.onend=()=>micBtn.classList.remove('active');rec.start();}
 function speakText(t){if('speechSynthesis' in window){speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang='te-IN';u.rate=0.9;speechSynthesis.speak(u);}}
 async function send(){
- let t=inp.value.trim();if(!t)return;if(mainDiv.innerHTML.includes('LIBRARY')||mainDiv.innerHTML.includes('IMAGES'))renderCurrentChat();
+ let t=inp.value.trim();if(!t)return;
+ if(mainDiv.innerHTML.includes('LIBRARY')||mainDiv.innerHTML.includes('IMAGES')){localStorage.removeItem('ai_current');mainDiv.innerHTML='';}
  mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${t}</div><div id="typing" class="msg ai">♻️ Typing...</div>`;inp.value='';chatDiv.scrollTop=chatDiv.scrollHeight;
- try{let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply} <span style="cursor:pointer;color:#4a9eff" onclick="speakText('${d.reply.replace(/'/g,'')}')"><i class="fa-solid fa-volume-high"></i></span></div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:t,a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');chats.push({q:t,a:d.reply});localStorage.setItem('ai_chats',JSON.stringify(chats));}catch(e){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Network error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
+ try{let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:t,a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');chats.push({q:t,a:d.reply});localStorage.setItem('ai_chats',JSON.stringify(chats));}catch(e){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Network error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
 }
 async function scanImage(e){
  let file=e.target.files[0];if(!file)return;let b64=await new Promise(res=>{let img=new Image(),rd=new FileReader();rd.onload=ev=>{img.onload=()=>{let c=document.createElement('canvas'),max=600,w=img.width,h=img.height;if(w>h){if(w>max){h=h*max/w;w=max}}else{if(h>max){w=w*max/h;h=max}}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);res(c.toDataURL('image/jpeg',0.6).split(',')[1]);};img.src=ev.target.result;};rd.readAsDataURL(file);});
- let preview=`data:image/jpeg;base64,${b64}`;mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${preview}" style="max-width:200px;border-radius:12px"><br>Scanning...</div><div id="typing" class="msg ai">♻️ Scanning...</div>`;chatDiv.scrollTop=chatDiv.scrollHeight;
- try{let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:'Image scan',a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');imgs.push(preview);localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));}catch(err){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">❌ ${err}</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
+ let preview=`data:image/jpeg;base64,${b64}`;mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${preview}" style="max-width:200px;border-radius:12px"></div><div id="typing" class="msg ai">♻️ Scanning...</div>`;chatDiv.scrollTop=chatDiv.scrollHeight;
+ try{let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});let d=await r.json();let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">${d.reply}</div>`;let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');cur.push({q:'Image scan',a:d.reply});localStorage.setItem('ai_current',JSON.stringify(cur));let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');imgs.push(preview);localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));}catch(err){let ty=document.getElementById('typing');if(ty)ty.remove();mainDiv.innerHTML+=`<div class="msg ai">Error</div>`;}chatDiv.scrollTop=chatDiv.scrollHeight;
 }
 </script></body></html>
 """
@@ -95,67 +103,36 @@ def chat_api():
             try:
                 r=requests.post("https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},
-                json={"model":model,"messages":[{"role":"system","content":"You are Andhariki AI, Telugu+English recycling expert. Helpful, respectful."},{"role":"user","content":msg}],"max_tokens":800},timeout=12)
+                json={"model":model,"messages":[{"role":"system","content":"You are Andhariki AI, Telugu+English recycling expert."},{"role":"user","content":msg}],"max_tokens":800},timeout=12)
                 j=r.json()
                 if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
             except: continue
-    if any(x in low for x in ["recycl","రిసైక్లింగ్","రీసైక్లింగ్","చెప్పు","plastic","paper","waste"]):
-        return jsonify({"reply":"♻️ **Recycling Tips** 🌱\\n\\n🔵 **Plastic - Blue bin:** Bottles, covers - kadi aarabetti vey\\n🟢 **Paper - Green bin:** Books, papers - thadi kaadu\\n🟡 **Glass/Metal - Yellow bin:** Bottles, cans\\n🔴 **E-Waste - Red bin:** Battery, mobile, wires\\n\\n✨ **Golden Rule:** Reduce ➡️ Reuse ➡️ Recycle"})
-    return jsonify({"reply": f"♻️ Hi babooie! '{msg}' gurinchi chepta! Recycling, waste - edaina adugu!"})
+    return jsonify({"reply":f"♻️ Recycling Tips 🌱\\n\\n🔵 Plastic - Blue bin\\n🟢 Paper - Green bin\\n🟡 Glass - Yellow bin\\n🔴 E-waste - Red bin\\n\\n'{msg}' gurinchi adigav kada, reduce reuse recycle babooie! 😊"})
 
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
         img = request.json.get("image","")
-        if not img:
-            return jsonify({"reply":"📸 Image raaledu babooie"})
-
-        prompt_text = """You are Andhariki AI, respectful Telugu+English assistant.
-        Analyze the image carefully:
-        - If it's a HUMAN PERSON (student, girl, boy, man, woman): Say in Telugu mix 'Idi manishi photo raa babooie 🙏 Oka vyakthi/student. Manushulu living beings, vaallani recycle cheyamu, gauravinchaali ❤️ Meeru waste gurinchi adagali anukunte plastic, paper, e-waste photos pettandi.' Be very respectful, NEVER call a person animal or item.
-        - If it's ANIMAL/BIRD/PET: Say 'Idi [animal name] raa, living thing, recycle kaadu, protect cheyali ❤️' + 1 fun fact
-        - If it's WASTE/OBJECT: Tell what it is, recyclable, which bin (Blue/Green/Yellow/Red), how to recycle.
-        Answer short, respectful, Telugu+English mix with emojis.
-        """
-
-        # TRY GROQ VISION
+        if not img: return jsonify({"reply":"📸 Image raaledu"})
+        prompt_text = """You are respectful assistant. If HUMAN person: say 'Idi manishi photo 🙏 manishi ni recycle cheyamu, gauravinchaali'. If ANIMAL: 'living thing, protect cheyali'. If WASTE: what it is, bin color, how recycle. Telugu+English mix."""
         if GROQ_API_KEY:
-            for m in ["llama-3.2-11b-vision-preview", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.2-90b-vision-preview"]:
+            for m in ["llama-3.2-11b-vision-preview","meta-llama/llama-4-scout-17b-16e-instruct"]:
                 try:
-                    r = requests.post("https://api.groq.com/openai/v1/chat/completions",
-                        headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},
-                        json={"model":m,"messages":[{"role":"user","content":[{"type":"text","text":prompt_text},{"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{img}"}}]}],"max_tokens":700},timeout=25)
-                    j = r.json()
-                    if "choices" in j and j["choices"]:
-                        return jsonify({"reply": j["choices"][0]["message"]["content"]})
+                    r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"user","content":[{"type":"text","text":prompt_text},{"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{img}"}}]}],"max_tokens":700},timeout=25)
+                    j=r.json()
+                    if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
                 except: continue
-
-        # TRY GEMINI - BEST
         if GEMINI_API_KEY:
-            for mn in ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]:
+            for mn in ["gemini-1.5-flash","gemini-2.0-flash"]:
                 try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
-                    r = requests.post(url, json={"contents":[{"parts":[{"text":prompt_text},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]}, timeout=25)
-                    j = r.json()
-                    if "candidates" in j and j["candidates"]:
-                        return jsonify({"reply": j["candidates"][0]["content"]["parts"][0]["text"]})
+                    url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
+                    r=requests.post(url,json={"contents":[{"parts":[{"text":prompt_text},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]},timeout=25)
+                    j=r.json()
+                    if "candidates" in j: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
                 except: continue
-
-        # RESPECTFUL FALLBACK - NEVER CALL PERSON ANIMAL
-        return jsonify({"reply": """🙏 **Idi manishi photo la undi babooie!**
-
-Manushulu, students, animals, birds - veellu living beings ❤️ Vaallani manam recycle cheyamu, gauravinchaali, protect cheyali!
-
-**Recycling kosam:**
-🔵 Plastic/bottle -> Blue bin
-🟢 Paper/books -> Green bin
-🟡 Glass/metal -> Yellow bin
-🔴 E-waste -> Red bin
-
-Waste item photo pedithe adi ela recycle cheyalo chepta! 😊"""})
-
+        return jsonify({"reply":"🙏 Idi manishi/animal photo la undi - living being ❤️ recycle kaadu, protect cheyali! Waste item ayite Blue/Green bin lo vey! 😊"})
     except Exception as e:
-        return jsonify({"reply": f"🙏 Photo chusa babooie! Manishi ayite gauravam, waste ayite recycling. Malli try chey! {str(e)[:50]}"})
+        return jsonify({"reply":f"🙏 Photo chusa! Manishi ayite gauravam ❤️ {str(e)[:30]}"})
 
 if __name__=="__main__":
     app.run(host="0.0.0.0",port=int(os.environ.get("PORT",10000)))
