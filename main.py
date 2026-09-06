@@ -84,22 +84,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background
 <script>
 function toggleMenu(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function newChat(){document.getElementById('mainContent').innerHTML='';document.getElementById('opts').style.display='flex';toggleMenu();}
-function showImages(){
- toggleMenu(); document.getElementById('opts').style.display='none';
- let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');
- let html='<div class="q-label">IMAGES GALLERY</div><div class="gallery">';
- if(imgs.length==0) html+='<p style="color:#888">Inka images levu. Oka photo scan chey!</p>';
- imgs.forEach(s=>{html+=`<img src="${s}">`}); html+='</div>';
- document.getElementById('mainContent').innerHTML=html;
-}
-function showLibrary(){
- toggleMenu(); document.getElementById('opts').style.display='none';
- let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');
- let html='<div class="q-label">LIBRARY</div>';
- if(chats.length==0) html+='<p style="color:#888">Chat history ledu</p>';
- chats.slice(-20).reverse().forEach(c=>{html+=`<div class="card"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,80)}...</span></div>`});
- document.getElementById('mainContent').innerHTML=html;
-}
+function showImages(){toggleMenu();document.getElementById('opts').style.display='none';let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');let html='<div class="q-label">IMAGES GALLERY</div><div class="gallery">';if(imgs.length==0)html+='<p style="color:#888">Inka images levu.</p>';imgs.forEach(s=>{html+=`<img src="${s}">`});html+='</div>';document.getElementById('mainContent').innerHTML=html;}
+function showLibrary(){toggleMenu();document.getElementById('opts').style.display='none';let chats=JSON.parse(localStorage.getItem('ai_chats')||'[]');let html='<div class="q-label">LIBRARY</div>';if(chats.length==0)html+='<p style="color:#888">Chat history ledu</p>';chats.slice(-20).reverse().forEach(c=>{html+=`<div class="card"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,80)}...</span></div>`});document.getElementById('mainContent').innerHTML=html;}
 function showProjects(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PROJECTS</div><div class="card">♻️ <b>Recycle Bin Scanner</b></div>`;}
 function showScheduled(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">SCHEDULED</div><div class="card">⏰ Ready</div>`;}
 function showPlugins(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PLUGINS</div><div class="card">📷 Scanner ON<br>🎤 Voice ON</div>`;}
@@ -131,7 +117,7 @@ async function scanImage(e){
    let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});
    let d=await r.json();
    document.getElementById('mainContent').innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;
-  }catch(err){ document.getElementById('mainContent').innerHTML+=`<div class="msg ai">❌ Scan error, key check chey</div>` }
+  }catch(err){ document.getElementById('mainContent').innerHTML+=`<div class="msg ai">❌ Scan error</div>` }
   chat.scrollTop=chat.scrollHeight;
  };
  reader.readAsDataURL(file);
@@ -142,8 +128,7 @@ async function scanImage(e){
 """
 
 @app.route("/")
-def home():
-    return HTML_PAGE
+def home(): return HTML_PAGE
 
 @app.route("/chat", methods=["POST"])
 def chat_api():
@@ -151,76 +136,53 @@ def chat_api():
     if GROQ_API_KEY:
         for m in ["llama-3.3-70b-versatile","llama-3.1-8b-instant"]:
             try:
-                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly Telugu+English mix, helpful."},{"role":"user","content":msg}],"max_tokens":1024},timeout=20)
+                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly Telugu+English mix."},{"role":"user","content":msg}],"max_tokens":1024},timeout=20)
                 j=r.json()
-                if "choices" in j and len(j["choices"])>0:
-                    return jsonify({"reply":j["choices"][0]["message"]["content"]})
-            except Exception as e:
-                print(f"Groq {m} error: {e}")
-                continue
-    # Gemini fallback - NEW MODELS 2026
+                if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
+            except: continue
     if GEMINI_API_KEY:
-        for model_name in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
+        for mn in ["gemini-2.5-flash","gemini-1.5-flash"]:
             try:
-                url=f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+                url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
                 r=requests.post(url,json={"contents":[{"parts":[{"text":msg}]}]},timeout=20)
                 j=r.json()
-                if "candidates" in j:
-                    return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
-            except Exception as e:
-                print(f"Gemini {model_name} error: {e}")
-                continue
-    return jsonify({"reply":"Busy raa, 1 min tarvata malli adugu ♻️"})
+                if "candidates" in j: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
+            except: continue
+    return jsonify({"reply":"Busy, malli adugu"})
 
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
         img=request.json.get("image","")
-        if not GEMINI_API_KEY:
-            return jsonify({"reply":"❌ GEMINI_API_KEY ledu Render Environment lo. Add chey!"})
+        prompt_text="You are Andhariki AI recycling expert. Analyze image in Telugu+English mix with emojis. Format: 1) Idi enti? 2) Recyclable ah? 3) E bin? 4) Ela recycle cheyali? If animal/person/food, say 'Idi living thing raa, recycle kaadu' with fun fact. Short 4-5 lines."
 
-        # E IMAGE AINA ANSWER ISTADI - PROMPT FIX
-        prompt_text = """
-        You are Andhariki AI - a friendly recycling expert.
-        Analyze this image. Respond in Telugu + English mix with emojis.
-        Always answer, even if it's not waste.
-        Format:
-        1️⃣ Idi enti? (What is this?)
-        2️⃣ Recyclable ah? Yes/No
-        3️⃣ Edi aithe e bin? (Blue/Green/Red/Compost)
-        4️⃣ Ela recycle cheyali?
-        If it's an animal/person/food, say "Idi living thing/food raa, recycle kaadu but... " and give fun fact.
-        Keep answer short, 4-5 lines max.
-        """
+        # 1. GROQ VISION - FAST, NO BUSY ERROR
+        if GROQ_API_KEY:
+            for m in ["meta-llama/llama-4-scout-17b-16e-instruct","meta-llama/llama-4-maverick-17b-128e-instruct","llama-3.2-11b-vision-preview"]:
+                try:
+                    r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"user","content":[{"type":"text","text":prompt_text},{"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{img}"}}]}],"max_tokens":600},timeout=30)
+                    j=r.json()
+                    print(f"Groq {m}: {str(j)[:400]}")
+                    if "choices" in j and len(j["choices"])>0:
+                        return jsonify({"reply":j["choices"][0]["message"]["content"]})
+                except Exception as e:
+                    print(f"Groq {m} fail {e}")
+                    continue
 
-        for model_name in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
-            try:
-                url=f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
-                payload={
-                    "contents":[{
-                        "parts":[
-                            {"text": prompt_text},
-                            {"inline_data":{"mime_type":"image/jpeg","data":img}}
-                        ]
-                    }]
-                }
-                r=requests.post(url,json=payload,timeout=30)
-                j=r.json()
-                print(f"Scan trying {model_name}: {str(j)[:300]}")
-                if "candidates" in j and j["candidates"]:
-                    ans=j["candidates"][0]["content"]["parts"][0]["text"]
-                    return jsonify({"reply":ans})
-                # If error, keep j for final error msg
-            except Exception as e:
-                print(f"Scan {model_name} failed: {e}")
-                continue
+        # 2. GEMINI BACKUP
+        if GEMINI_API_KEY:
+            for mn in ["gemini-2.5-flash","gemini-1.5-flash","gemini-flash-latest"]:
+                try:
+                    url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
+                    r=requests.post(url,json={"contents":[{"parts":[{"text":prompt_text},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]},timeout=30)
+                    j=r.json()
+                    if "candidates" in j and j["candidates"]:
+                        return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
+                except: continue
 
-        # If all failed
-        return jsonify({"reply":f"❌ API Error: {str(j)[:250]}. Key invalid ayithe aistudio.google.com lo kotha key teesuko!"})
-
+        return jsonify({"reply":"♻️ Server konchem busy raa babooie, 30 sec tarvata malli try chey!"})
     except Exception as e:
-        print(f"Scan main error: {e}")
-        return jsonify({"reply":f"❌ Error: {str(e)[:150]} - Malli try chey"})
+        return jsonify({"reply":f"Error {e}"})
 
 if __name__=="__main__":
     app.run(host="0.0.0.0",port=int(os.environ.get("PORT",10000)))
