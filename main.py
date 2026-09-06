@@ -60,21 +60,18 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background
 <div class="side-item" onclick="showPlugins()"><i class="fa-solid fa-plug"></i> Plugins</div>
 <div style="margin-top:auto;padding:20px;color:#666;font-size:12px">♻️ Andhariki AI</div>
 </div>
-
 <div class="top">
 <div class="top-left"><div class="menu" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div><div class="getplus"><i class="fa-solid fa-sparkles"></i> Andhariki AI</div></div>
 <div class="menu" onclick="newChat()"><i class="fa-solid fa-pen-to-square"></i></div>
 </div>
-
 <div class="chat" id="chat">
 <div class="options" id="opts">
-<div class="opt" onclick="quick('Create an image of recycling bin')"><i class="fa-regular fa-image"></i> Create an image or sticker</div>
+<div class="opt" onclick="quick('Create an image of recycling bin')"><i class="fa-regular fa-image"></i> Create an image</div>
 <div class="opt" onclick="quick('Write a post about recycling')"><i class="fa-solid fa-pen"></i> Write or edit</div>
 <div class="opt" onclick="quick('Search about waste management')"><i class="fa-solid fa-globe"></i> Search the web</div>
 </div>
 <div id="mainContent"></div>
 </div>
-
 <div class="input-area">
 <div class="input-box">
 <div class="plus" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-plus"></i></div>
@@ -84,7 +81,6 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background
 <div class="voice-circle" onclick="send()"><i class="fa-solid fa-arrow-up"></i></div>
 </div>
 </div>
-
 <script>
 function toggleMenu(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function newChat(){document.getElementById('mainContent').innerHTML='';document.getElementById('opts').style.display='flex';toggleMenu();}
@@ -93,8 +89,7 @@ function showImages(){
  let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]');
  let html='<div class="q-label">IMAGES GALLERY</div><div class="gallery">';
  if(imgs.length==0) html+='<p style="color:#888">Inka images levu. Oka photo scan chey!</p>';
- imgs.forEach(s=>{html+=`<img src="${s}">`});
- html+='</div>';
+ imgs.forEach(s=>{html+=`<img src="${s}">`}); html+='</div>';
  document.getElementById('mainContent').innerHTML=html;
 }
 function showLibrary(){
@@ -105,29 +100,12 @@ function showLibrary(){
  chats.slice(-20).reverse().forEach(c=>{html+=`<div class="card"><b>You:</b> ${c.q}<br><span style="color:#aaa">${c.a.substring(0,80)}...</span></div>`});
  document.getElementById('mainContent').innerHTML=html;
 }
-function showProjects(){
- toggleMenu(); document.getElementById('opts').style.display='none';
- document.getElementById('mainContent').innerHTML=`<div class="q-label">PROJECTS</div>
- <div class="card">♻️ <b>Recycle Bin Scanner</b><br><small>Plastic, paper, e-waste detection</small></div>
- <div class="card">🌱 <b>Eco Awareness</b><br><small>Telugu content for villages</small></div>`;
-}
-function showScheduled(){
- toggleMenu(); document.getElementById('opts').style.display='none';
- document.getElementById('mainContent').innerHTML=`<div class="q-label">SCHEDULED</div><div class="card">⏰ Feature ready! Nuvvu message schedule cheyochu</div>`;
-}
-function showPlugins(){
- toggleMenu(); document.getElementById('opts').style.display='none';
- document.getElementById('mainContent').innerHTML=`<div class="q-label">PLUGINS</div>
- <div class="card">📷 <b>Scanner</b> - ON<br>🎤 <b>Voice</b> - ON</div>`;
-}
+function showProjects(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PROJECTS</div><div class="card">♻️ <b>Recycle Bin Scanner</b></div>`;}
+function showScheduled(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">SCHEDULED</div><div class="card">⏰ Ready</div>`;}
+function showPlugins(){toggleMenu();document.getElementById('opts').style.display='none';document.getElementById('mainContent').innerHTML=`<div class="q-label">PLUGINS</div><div class="card">📷 Scanner ON<br>🎤 Voice ON</div>`;}
 const chat=document.getElementById('chat'); const inp=document.getElementById('inp');
 function quick(t){inp.value=t; send();}
-function startVoice(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- let rec=new SR(); rec.lang='te-IN';
- rec.onresult=(e)=>{ inp.value=e.results[0][0].transcript; send(); };
- rec.start();
-}
+function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=new SR();rec.lang='te-IN';rec.onresult=(e)=>{inp.value=e.results[0][0].transcript;send();};rec.start();}
 async function send(){
  let t=inp.value.trim(); if(!t) return;
  document.getElementById('opts').style.display='none';
@@ -149,9 +127,11 @@ async function scanImage(e){
   document.getElementById('opts').style.display='none';
   document.getElementById('mainContent').innerHTML+=`<div class="q-label">You</div><div class="msg user"><img src="${reader.result}" style="max-width:200px;border-radius:12px"><br>♻️ Scanning...</div>`;
   let imgs=JSON.parse(localStorage.getItem('ai_images')||'[]'); imgs.push(reader.result); localStorage.setItem('ai_images',JSON.stringify(imgs.slice(-20)));
-  let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});
-  let d=await r.json();
-  document.getElementById('mainContent').innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;
+  try{
+   let r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});
+   let d=await r.json();
+   document.getElementById('mainContent').innerHTML+=`<div class="q-label">Andhariki AI</div><div class="msg ai">♻️ ${d.reply}</div>`;
+  }catch(err){ document.getElementById('mainContent').innerHTML+=`<div class="msg ai">❌ Scan error, key check chey</div>` }
   chat.scrollTop=chat.scrollHeight;
  };
  reader.readAsDataURL(file);
@@ -167,17 +147,19 @@ def home(): return HTML_PAGE
 @app.route("/chat", methods=["POST"])
 def chat_api():
     msg=request.json.get("message","")
+    # Try Groq first
     if GROQ_API_KEY:
-        for m in ["openai/gpt-oss-20b","openai/gpt-oss-120b"]:
+        for m in ["llama-3.3-70b-versatile","openai/gpt-oss-20b","llama-3.1-8b-instant"]:
             try:
-                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly, Telugu+English mix."},{"role":"user","content":msg}],"max_tokens":1024},timeout=25)
+                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"system","content":"You are Andhariki AI, friendly Telugu+English mix."},{"role":"user","content":msg}],"max_tokens":1024},timeout=20)
                 j=r.json()
-                if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
+                if "choices" in j and len(j["choices"])>0: return jsonify({"reply":j["choices"][0]["message"]["content"]})
             except: continue
+    # Gemini fallback
     if GEMINI_API_KEY:
         try:
-            url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-            r=requests.post(url,json={"contents":[{"parts":[{"text":msg}]}]},timeout=25)
+            url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+            r=requests.post(url,json={"contents":[{"parts":[{"text":msg}]}]},timeout=20)
             j=r.json()
             if "candidates" in j: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
         except: pass
@@ -187,11 +169,20 @@ def chat_api():
 def scan():
     try:
         img=request.json.get("image","")
-        url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        payload={"contents":[{"parts":[{"text":"You are Andhariki AI recycling scanner. Analyze image: what item, recyclable?, which bin?, how to recycle? Short Telugu+English."},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]}
+        if not GEMINI_API_KEY:
+            return jsonify({"reply":"❌ GEMINI key ledu Render lo"})
+        # NEW MODEL - 2026 working
+        url=f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+        payload={"contents":[{"parts":[{"text":"You are Andhariki AI recycling expert. Look at this image. Tell in Telugu+English mix: 1) What is this? 2) Is it recyclable? 3) Which bin color? 4) How to recycle? Keep short, friendly, with emojis. Even if not waste (like animals), explain why not recyclable."},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]}
         r=requests.post(url,json=payload,timeout=30)
         j=r.json()
-        return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
-    except: return jsonify({"reply":"Clear photo petti try chey"})
+        print(j) # for Render logs
+        if "candidates" in j and j["candidates"]:
+            return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
+        else:
+            return jsonify({"reply":f"API Error: {str(j)[:200]} - Key invalid or quota over"})
+    except Exception as e:
+        print(f"Scan error: {e}")
+        return jsonify({"reply":f"Error: {str(e)[:150]} - Malli try chey"})
 
 if __name__=="__main__": app.run(host="0.0.0.0",port=int(os.environ.get("PORT",10000)))
