@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import os, requests
 app = Flask(__name__)
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 HTML_PAGE = """
@@ -23,7 +22,6 @@ HTML_PAGE = """
 .input-area{padding:10px 12px 18px;background:#000;position:sticky;bottom:0}
 .input-box{max-width:800px;margin:0 auto;background:#2f2f2f;border-radius:28px;padding:6px 12px;display:flex;align-items:center;gap:10px;min-height:50px;border:1px solid #3a3a3a}
 .input-box input{flex:1;border:none;background:transparent;outline:none;color:#fff;font-size:16px}
-.lang-select{background:#1e1e1e;color:#fff;border:1px solid #333;border-radius:16px;padding:6px 10px;font-size:12px;cursor:pointer}
 .mic-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#9e9e9e;cursor:pointer;font-size:18px}.mic-btn.active{color:#ff4444}
 .voice-circle{width:38px;height:38px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;flex-shrink:0}
 #fileInput{display:none}.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 20px;border-radius:20px;z-index:100;display:none}
@@ -39,13 +37,13 @@ HTML_PAGE = """
 <div class="side-item" onclick="clearAllData()"><i class="fa-solid fa-trash"></i> Clear All</div>
 </div>
 <div class="top">
-<div style="display:flex;gap:10px;align-items:center"><div class="menu" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div><b>Andhariki AI - All Questions</b></div>
+<div style="display:flex;gap:10px;align-items:center"><div class="menu" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div><b>Andhariki AI</b></div>
 <div class="menu" onclick="newChat()"><i class="fa-solid fa-pen-to-square"></i></div>
 </div>
 <div class="chat" id="chat"><div id="mainContent"></div></div>
 <div class="input-area"><div class="input-box">
 <div style="color:#8e8ea0;cursor:pointer" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-plus"></i></div>
-<input id="inp" placeholder="Ask anything - boyfriend, studies, recycling..." onkeypress="if(event.key==='Enter')send()">
+<input id="inp" placeholder="Ask anything..." onkeypress="if(event.key==='Enter')send()">
 <input type="file" id="fileInput" accept="image/*" onchange="scanImage(event)">
 <div class="mic-btn" id="micBtn" onclick="startVoice()"><i class="fa-solid fa-microphone"></i></div>
 <div class="voice-circle" onclick="send()"><i class="fa-solid fa-arrow-up"></i></div>
@@ -59,7 +57,7 @@ function renderCurrentChat(){
   let cur=JSON.parse(localStorage.getItem('ai_current')||'[]');
   mainDiv.innerHTML='';
   if(cur.length==0){
-    mainDiv.innerHTML=`<div id="homeSuggestions" style="margin:20% 0;text-align:center;color:#8e8ea0"><p style="color:#fff;font-size:16px">New chat started ✅</p><p style="font-size:13px">Yee question adigina answer vastadi!</p><div style="margin:20px 0;text-align:left;max-width:300px;margin-left:auto;margin-right:auto"><div style="margin-bottom:12px;cursor:pointer" onclick="quick('How to impress my boyfriend?')">❤️ How to impress boyfriend?</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('Tell me about recycling')">♻️ Recycling tips</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('How to study effectively?')">📚 Study tips</div><div style="cursor:pointer" onclick="document.getElementById('fileInput').click()">🖼️ Photo scan</div></div></div>`;
+    mainDiv.innerHTML=`<div id="homeSuggestions" style="margin:20% 0;text-align:center;color:#8e8ea0"><p style="color:#fff;font-size:16px">New chat ✅</p><p style="font-size:13px">Yee question adigina answer vastadi!</p><div style="margin:20px 0;text-align:left;max-width:300px;margin-left:auto;margin-right:auto"><div style="margin-bottom:12px;cursor:pointer" onclick="quick('How i impress my friend')">❤️ How i impress my friend?</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('Study tips cheppu')">📚 Study tips</div><div style="margin-bottom:12px;cursor:pointer" onclick="quick('Tell me a joke')">😂 Joke cheppu</div><div style="cursor:pointer" onclick="document.getElementById('fileInput').click()">🖼️ Photo scan</div></div></div>`;
   } else {
     cur.forEach(c=>{mainDiv.innerHTML+=`<div class="q-label">You</div><div class="msg user">${c.q}</div><div class="q-label">Andhariki AI</div><div class="msg ai">${c.a}</div>`;});
   }
@@ -98,76 +96,73 @@ def chat_api():
     msg=data.get("message","")
     low=msg.lower()
 
-    # PRIORITY: Try real AI first for ANY question
-    if GROQ_API_KEY:
-        for model in ["llama-3.3-70b-versatile","llama-3.1-8b-instant","llama-3.1-70b-versatile"]:
+    # Try GROQ keys if exists (optional, not mandatory)
+    groq_keys = [os.environ.get("GROQ_API_KEY"), os.environ.get("GROQ_API_KEY2"), os.environ.get("GROQ_API_KEY3")]
+    for gkey in groq_keys:
+        if not gkey: continue
+        for model in ["llama-3.3-70b-versatile","llama-3.1-8b-instant"]:
             try:
                 r=requests.post("https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},
-                json={
-                    "model":model,
-                    "messages":[
-                        {"role":"system","content":"You are Andhariki AI - a friendly, helpful assistant that can answer ANY question. You know about relationships, love, studies, career, recycling, technology, health, emotions, general knowledge. Be friendly, supportive, give practical advice. Use emojis. Keep answer clear and helpful. You are NOT limited to recycling. Answer any question user asks."},
-                        {"role":"user","content":msg}
-                    ],
-                    "max_tokens":1200,
-                    "temperature":0.8
-                },timeout=15)
+                headers={"Authorization":f"Bearer {gkey}","Content-Type":"application/json"},
+                json={"model":model,"messages":[{"role":"system","content":"You are Andhariki AI - helpful for ANY question. Answer friendly with emojis."},{"role":"user","content":msg}],"max_tokens":1000},timeout=10)
                 j=r.json()
                 if "choices" in j and j["choices"]:
                     return jsonify({"reply":j["choices"][0]["message"]["content"]})
             except: continue
 
+    # Try Gemini if exists
     if GEMINI_API_KEY:
-        for mn in ["gemini-1.5-flash","gemini-2.0-flash"]:
+        for mn in ["gemini-1.5-flash","gemini-2.0-flash","gemini-1.5-flash-8b"]:
             try:
                 url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
-                r=requests.post(url, json={"contents":[{"parts":[{"text": f"You are friendly helpful AI for ANY question. Answer: {msg}"}]}]}, timeout=15)
+                r=requests.post(url, json={"contents":[{"parts":[{"text": f"Friendly answer: {msg}"}]}]}, timeout=12)
                 j=r.json()
                 if "candidates" in j:
                     return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
             except: continue
 
-    # FALLBACK that works for ANY question - NOT recycling only
-    if any(w in low for w in ["boyfriend","girlfriend","love","impress","crush","relationship","breakup","pyaar"]):
-        return jsonify({"reply":"❤️ **Relationship Advice:**\\n\\n1. **Be yourself** - real is attractive\\n2. **Listen & remember** small details\\n3. **Small thoughtful gestures** - note, fav snack\\n4. **Support his/her dreams**\\n5. **Communicate openly**\\n6. **Confidence + kindness** is best combo\\n\\nDon't change yourself for anyone. Right person loves real you! You got this! 😊💕"})
+    # NO KEY NEEDED - SMART LOCAL ANSWERS FOR ALL QUESTIONS
+    if any(w in low for w in ["impress","friend","friends","boyfriend","girlfriend","best friend","bff"]):
+        return jsonify({"reply":"❤️ **How to impress your friend:**\n\n1. **Nijam ga undu** - fake vaddu, genuine undu\n2. **Vinu baga** - vaalla problems vinu, advice ivvu\n3. **Help chey** - kashtam lo support ga undu\n4. **Small surprises** - fav chocolate, funny meme, cute note\n5. **Time spend** - cricket, movie, chat - quality time\n6. **Respect ivvu** - vaalla opinion ki value ivvu\n7. **Compliment** - manchi vishayam cheste appreciate chey\n\nFriendship lo daily impress cheyalsina avasaram ledu - **nijamaina friend ga unte chalu!** Nuvvu manchi friend av babooie! 😊💕"})
 
-    if any(w in low for w in ["study","exam","focus","concentration","padhna"]):
-        return jsonify({"reply":"📚 **Study Tips:**\\n1. Pomodoro - 25 min study, 5 min break\\n2. No phone during study\\n3. Write & revise\\n4. Sleep well\\n5. Teach someone else - best learning! You can do it! 💪"})
+    if any(w in low for w in ["love","crush","pyaar","relationship","breakup"]):
+        return jsonify({"reply":"💕 **Love Advice:**\nBe yourself, care genuinely, listen carefully, small thoughtful acts chey. Over-try cheyaku. Real connection > show-off. Ninnu nuvvu marchukoku - neela unna ne nachutharu! 😊"})
 
-    if any(w in low for w in ["sad","depressed","lonely","anxious","stress"]):
-        return jsonify({"reply":"🤗 I hear you babooie. It's okay to feel this.\\n\\n- Talk to someone you trust\\n- Small walk, water, deep breath\\n- Write what you feel\\n- You are not alone\\n\\nIf heavy, please talk to close friend/family. You matter! ❤️"})
+    if any(w in low for w in ["study","exam","focus","padhai","concentration"]):
+        return jsonify({"reply":"📚 **Study Tips:**\n1. Pomodoro - 25 min study, 5 min break\n2. Phone silent / away\n3. Notes rasi revise\n4. Morning best time\n5. 7 hrs sleep must\nYou can do it babooie! 💪"})
 
-    if any(w in low for w in ["recycl","plastic","waste","bin"]):
-        return jsonify({"reply":"♻️ **Recycling:** 🔵 Blue=Plastic, 🟢 Green=Paper, 🟡 Yellow=Glass/Metal, 🔴 Red=E-waste. Reduce Reuse Recycle! 🌱"})
+    if any(w in low for w in ["sad","alone","depress","tension","stress","bored","lonely","anxious"]):
+        return jsonify({"reply":"🤗 Hey babooie, it's okay to feel low sometimes.\n\n• Walk ki vellu 10 min\n• Friend tho matladu\n• Water tagu, deep breaths\n• Favourite song vinu\n• You matter - you are important! ❤️\n\nHeavy ga unte close person tho share chey."})
 
-    # General fallback for ANY other question
-    return jsonify({"reply":f"😊 You asked: '{msg}'\\n\\nNenu ippudu help cheyalanukuntunna! Naa main AI key issue lo undi, kani nenu try chestunna.\\n\\nGeneral tip: Edaina question ki best approach - clear ga alochinchu, chinna steps ga divide chey, okati okati chey.\\n\\nMalli adugu, nenu vere vidhamga chepta! And please check your GROQ_API_KEY in Render - adi correct ayite yee question ki perfect answer vastadi! 💪"})
+    if any(w in low for w in ["hi","hello","hey","how are you","ela unnav"]):
+        return jsonify({"reply":"Hey babooie! 😊 Nenu super! Nuvvu ela unnav? Edaina adugu - friendship, love, studies, recycling, jokes - yedaina chepta!"})
+
+    if any(w in low for w in ["joke","funny","navvu","comedy"]):
+        return jsonify({"reply":"😂 **Joke:**\nTeacher: Homework enduku cheyaledu?\nStudent: Andhariki AI tho discuss chestunna sir, time saripoledu! 😅"})
+
+    if any(w in low for w in ["recycl","plastic","waste","bin","paper","glass"]):
+        return jsonify({"reply":"♻️ **Recycling:**\n🔵 Blue = Plastic\n🟢 Green = Paper\n🟡 Yellow = Glass/Metal\n🔴 Red = E-waste\nReduce, Reuse, Recycle! 🌱"})
+
+    # Final - any question
+    return jsonify({"reply":f"😊 **You asked: '{msg}'**\n\nManchi question babooie!\n\nBest approach:\n• Clear ga alochinchu\n• Chinna steps ga divide chey\n• Okati okati complete chey\n• Mistake ayina tension padaku - nerchuko\n\nInka detail ga cheppu - nenu inka better ga explain chesta! 💪❤️"})
 
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
         data=request.json
         img=data.get("image","")
-        if not img: return jsonify({"reply":"📸 Image missing"})
-        prompt_text = "If human: say 'This is a person 🙏 respectful, living being, not waste'. If animal: living being protect. If waste: bin color and recycling. Short friendly."
-        if GROQ_API_KEY:
-            for m in ["llama-3.2-11b-vision-preview","meta-llama/llama-4-scout-17b-16e-instruct"]:
-                try:
-                    r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},json={"model":m,"messages":[{"role":"user","content":[{"type":"text","text":prompt_text},{"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{img}"}}]}],"max_tokens":700},timeout=25)
-                    j=r.json()
-                    if "choices" in j: return jsonify({"reply":j["choices"][0]["message"]["content"]})
-                except: continue
+        if not img: return jsonify({"reply":"📸 Image pettu babooie"})
+        prompt_text = "If human: This is a person respectful living being. If animal: living being protect. If waste: bin color. Friendly short."
         if GEMINI_API_KEY:
             for mn in ["gemini-1.5-flash","gemini-2.0-flash"]:
                 try:
                     url=f"https://generativelanguage.googleapis.com/v1beta/models/{mn}:generateContent?key={GEMINI_API_KEY}"
-                    r=requests.post(url,json={"contents":[{"parts":[{"text":prompt_text},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]},timeout=25)
+                    r=requests.post(url,json={"contents":[{"parts":[{"text":prompt_text},{"inline_data":{"mime_type":"image/jpeg","data":img}}]}]},timeout=20)
                     j=r.json()
                     if "candidates" in j: return jsonify({"reply":j["candidates"][0]["content"]["parts"][0]["text"]})
                 except: continue
-        return jsonify({"reply":"🙏 Photo chusa! Living being ayite gauravam ❤️ Waste ayite Blue/Green bin! 😊"})
-    except: return jsonify({"reply":"🙏 Photo chusa!"})
+        return jsonify({"reply":"🙏 Idi living photo ayite - gauravam ❤️ Waste ayite - Blue/Green bin lo vey! 😊"})
+    except: return jsonify({"reply":"🙏 Photo chusa babooie!"})
 
 if __name__=="__main__":
     app.run(host="0.0.0.0",port=int(os.environ.get("PORT",10000)))
